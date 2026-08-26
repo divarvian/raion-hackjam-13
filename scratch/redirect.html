@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Kawal.Z</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 32px 24px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+      max-width: 420px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      border: 1px solid #f1f5f9;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .description-container {
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+
+    .description-container p {
+      margin-top: 0;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .instructions-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .instructions-box p.title {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    ol {
+      margin: 0;
+      padding-left: 18px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      text-align: left;
+      line-height: 1.5;
+    }
+
+    li:last-child {
+      margin-bottom: 0;
+    }
+
+    li strong {
+      color: #334155;
+    }
+
+    .spinner {
+      border: 3px solid #e2e8f0;
+      border-left-color: #0ea5e9;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .btn {
+      display: inline-block;
+      background: #0ea5e9;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+    }
+
+    .btn:hover {
+      background: #0284c7;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(14, 165, 233, 0.3);
+    }
+
+    .error-icon {
+      width: 56px;
+      height: 56px;
+      background-color: #fee2e2;
+      color: #ef4444;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 20px auto;
+      font-weight: bold;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 24px 16px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .description-container {
+        font-size: 14px;
+      }
+      .btn {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div id="spinner" class="spinner"></div>
+    <div id="error-icon" class="error-icon">✕</div>
+    
+    <h1 id="title">Sedang Memverifikasi...</h1>
+    
+    <div id="desc" class="description-container">
+      <p>Mohon tunggu sebentar, kami sedang mengamankan sesi Anda dan mengarahkan kembali ke aplikasi Kawal.Z.</p>
+    </div>
+    
+    <a id="fallback-btn" href="#" class="btn" style="display: none;">Buka Aplikasi Kawal.Z</a>
+  </div>
+
+  <script>
+    const queryString = window.location.search;
+    const hashString = window.location.hash;
+    
+    const paramsString = queryString ? queryString : (hashString ? "?" + hashString.substring(1) : "");
+    const urlParams = new URLSearchParams(paramsString);
+    
+    const titleEl = document.getElementById('title');
+    const descEl = document.getElementById('desc');
+    const spinnerEl = document.getElementById('spinner');
+    const errorIconEl = document.getElementById('error-icon');
+    const btnEl = document.getElementById('fallback-btn');
+
+    if (urlParams.get('error_code') === 'otp_expired' || urlParams.get('error') === 'access_denied') {
+      
+      // -- SKENARIO ERROR / KADALUARSA --
+      spinnerEl.style.display = 'none'; 
+      errorIconEl.style.display = 'flex';
+      
+      titleEl.innerText = 'Tautan Telah Kedaluwarsa';
+      titleEl.style.color = '#ef4444'; // Merah gelap
+      
+      descEl.innerHTML = `
+        <p style="text-align: center; margin-bottom: 0;">Mohon maaf, tautan verifikasi email Anda sudah tidak berlaku karena telah melewati batas waktu. Namun jangan khawatir, data akun Anda tetap tersimpan dengan aman.</p>
+        
+        <div class="instructions-box">
+          <p class="title">Panduan Mendapatkan Tautan Baru:</p>
+          <ol>
+            <li>Tutup halaman ini dan kembali ke aplikasi <strong>Kawal.Z</strong>.</li>
+            <li>Buka menu <strong>Masuk / Login</strong>.</li>
+            <li>Masukkan <strong>Email</strong> dan <strong>Password</strong> yang telah Anda daftarkan sebelumnya.</li>
+            <li>Tekan tombol masuk. Anda akan melihat pesan peringatan merah.</li>
+            <li>Klik tombol <strong>"Kirim Ulang"</strong> yang muncul di dalam pesan peringatan tersebut.</li>
+          </ol>
+        </div>
+      `;
+      
+      btnEl.style.display = 'none';
+      
+    } else {
+      
+      // -- SKENARIO SUKSES --
+      const appDeepLink = "io.supabase.kawalz://login-callback/" + hashString + queryString;
+      btnEl.href = appDeepLink;
+      
+      titleEl.innerText = 'Verifikasi Berhasil! 🎉';
+      
+      descEl.innerHTML = `
+        <p>Terima kasih, email Anda telah sukses diverifikasi. Selamat bergabung di komunitas Kawal.Z!</p>
+        <p style="color: #94a3b8; font-size: 14px;">Sistem sedang mengarahkan Anda kembali ke aplikasi secara otomatis...</p>
+      `;
+      
+      // Tampilkan tombol setelah 2 detik sebagai fallback
+      setTimeout(() => {
+        btnEl.style.display = 'inline-block';
+      }, 2000);
+      
+      // Auto-Redirect ke Aplikasi
+      setTimeout(() => {
+        window.location.href = appDeepLink;
+      }, 500);
+      
+    }
+  </script>
+
+</body>
+</html>
