@@ -6,7 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/routing/route_names.dart';
-import '../../../../core/utils/error_handler.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../../chatbot/presentation/widgets/ai_fab.dart';
@@ -59,19 +59,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     // Watch anti-farming state to show snackbar
     ref.listen<AsyncValue<bool>>(articleReadProvider(widget.policyId), (previous, next) {
       if (next.value == true && previous?.value != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.star_rounded, color: Colors.amber),
-                const SizedBox(width: 8),
-                const Text('Hebat! Kamu dapat +10 XP dari membaca!'),
-              ],
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        SnackbarUtils.showSuccess(context, 'Hebat! Kamu dapat +10 XP dari membaca!');
       }
     });
 

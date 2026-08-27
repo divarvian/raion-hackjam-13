@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../domain/flashcard_category_model.dart';
@@ -103,7 +104,7 @@ class FlashcardRepository {
       });
       
     } catch (e) {
-      print('Error awarding XP: $e');
+      developer.log('Error awarding XP: $e', name: 'FlashcardRepository');
     }
   }
 }

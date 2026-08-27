@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/routing/route_names.dart';
-import '../../../../core/utils/error_handler.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../domain/flashcard_model.dart';
 import '../../providers/flashcard_provider.dart';
@@ -95,15 +94,7 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
                       final swipedCard = cards[previousIndex];
                       if (swipedCard.cardType == 'question' && !_answeredCardIndices.contains(previousIndex)) {
                         ScaffoldMessenger.of(context).clearSnackBars();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Eits, jawab kuisnya dulu dong! 🤓'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: AppColors.warning,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                         SnackbarUtils.showWarning(context, 'Eits, jawab kuisnya dulu dong! 🤓');
                         return false;
                       }
 

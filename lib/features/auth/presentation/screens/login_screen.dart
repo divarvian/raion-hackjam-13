@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/services/supabase_service.dart';
 
 /// Login Screen — Email/Password + Google Sign-In
@@ -41,24 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Link verifikasi baru telah dikirim ke emailmu!'),
-            backgroundColor: AppColors.support,
-          ),
-        );
-      }
+         SnackbarUtils.showSuccess(context, 'Link verifikasi baru telah dikirim!');
+       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
-      }
-    }
-  }
+       if (mounted) {
+         SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
+       }
+     }
+   }
 
   Future<void> _signInWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
@@ -75,43 +67,28 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (e) {
       if (mounted) {
         if (e.code == 'email_not_confirmed') {
-          final email = _emailController.text.trim();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppErrorHandler.getMessage(e)),
-              backgroundColor: AppColors.reject,
-              duration: const Duration(
-                seconds: 5,
-              ), // Tahan agak lama agar user sempat klik
+            final email = _emailController.text.trim();
+            SnackbarUtils.showError(
+              context,
+              AppErrorHandler.getMessage(e),
               action: SnackBarAction(
                 label: 'Kirim Ulang',
                 textColor: Colors.white,
                 onPressed: () => _resendEmail(email),
               ),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppErrorHandler.getMessage(e)),
-              backgroundColor: AppColors.reject,
-            ),
-          );
-        }
+            );
+          } else {
+            SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
+          }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+       if (mounted) {
+         SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
+       }
+     } finally {
+       if (mounted) setState(() => _isLoading = false);
+     }
+   }
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isGoogleLoading = true);
@@ -128,18 +105,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       
       final email = googleUser.email.toLowerCase().trim();
-      if (!email.endsWith('.ac.id') && !email.endsWith('.edu')) {
-        await googleSignIn.signOut();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal: Hanya menerima email mahasiswa (.ac.id / .edu)'),
-              backgroundColor: AppColors.reject,
-            ),
-          );
-        }
-        return;
-      }
+       if (!email.endsWith('.ac.id') && !email.endsWith('.edu')) {
+         await googleSignIn.signOut();
+         if (mounted) {
+           SnackbarUtils.showError(context, 'Hanya email mahasiswa (.ac.id / .edu)');
+         }
+         return;
+       }
 
       final googleAuth = await googleUser.authentication;
       final accessToken = googleAuth.accessToken;
@@ -161,17 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await GoogleSignIn()
           .signOut(); // Clear cached account so user can pick again
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
-    }
-  }
+         SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
+       }
+     } finally {
+       if (mounted) setState(() => _isGoogleLoading = false);
+     }
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -309,16 +276,32 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Google Sign-In Button
                 SizedBox(
                   height: 52,
-                  child: OutlinedButton.icon(
+                  child: OutlinedButton(
                     onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
-                    icon: _isGoogleLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.border),
+                      foregroundColor: AppColors.textPrimary,
+                      backgroundColor: Colors.white,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isGoogleLoading)
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.g_mobiledata_rounded, size: 28),
-                    label: const Text('Masuk dengan Google'),
+                        else
+                          SvgPicture.asset(
+                            'assets/icons/google_logo.svg',
+                            width: 20,
+                            height: 20,
+                          ),
+                        const SizedBox(width: 12),
+                        const Text('Masuk dengan Google'),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSizes.p32),

@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../constants/app_colors.dart';
-import '../constants/app_sizes.dart';
-import '../constants/app_text_styles.dart';
-import '../../core/widgets/app_error_widget.dart';
-import 'package:flutter/material.dart';
+import '../../core/onboarding/onboarding_screen.dart';
+import '../../core/onboarding/topic_selection_screen.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_sizes.dart';
+import '../../core/constants/app_text_styles.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/article_detail_screen.dart';
 import '../../features/voting/presentation/screens/vote_screen.dart';
@@ -25,7 +25,9 @@ import 'route_names.dart';
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((dynamic _) => notifyListeners());
+    _subscription = stream.asBroadcastStream().listen(
+      (dynamic _) => notifyListeners(),
+    );
   }
 
   late final StreamSubscription<dynamic> _subscription;
@@ -45,15 +47,11 @@ final goRouter = GoRouter(
   redirect: (context, state) {
     final isLoggedIn = SupabaseService.isAuthenticated;
     final currentPath = state.matchedLocation;
-    final fullUri = state.uri.toString();
-
-    // // Intercept deep link Supabase yang masuk (native URL)
-    // if (fullUri.contains('login-callback')) {
-    //   return RouteNames.splash;
-    // }
 
     final isAuthRoute = currentPath == RouteNames.login ||
-        currentPath == RouteNames.register;
+        currentPath == RouteNames.register ||
+        currentPath == RouteNames.onboarding ||
+        currentPath == RouteNames.topicSelection;
     final isSplash = currentPath == RouteNames.splash;
 
     // Splash handles its own redirect
@@ -81,36 +79,38 @@ final goRouter = GoRouter(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-        Container(
-          padding: const EdgeInsets.all(AppSizes.p16),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.explore_off_rounded,
-            size: 64,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: AppSizes.p24),
-        Text(
-          'Tersesat? (404)',
-          style: AppTextStyles.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSizes.p8),
-        Text(
-          'Halaman atau rute yang kamu tuju tidak ditemukan.\nMungkin halamannya sudah dihapus atau linknya salah.',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: AppSizes.p32),
-        ElevatedButton.icon(
-          onPressed: () => context.go(RouteNames.splash),
-          icon: const Icon(Icons.home_rounded),
-          label: const Text('Kembali ke Beranda'),
-        ),
+            Container(
+              padding: const EdgeInsets.all(AppSizes.p16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.explore_off_rounded,
+                size: 64,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: AppSizes.p24),
+            Text(
+              'Tersesat? (404)',
+              style: AppTextStyles.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSizes.p8),
+            Text(
+              'Halaman atau rute yang kamu tuju tidak ditemukan.\nMungkin halamannya sudah dihapus atau linknya salah.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSizes.p32),
+            ElevatedButton.icon(
+              onPressed: () => context.go(RouteNames.splash),
+              icon: const Icon(Icons.home_rounded),
+              label: const Text('Kembali ke Beranda'),
+            ),
           ],
         ),
       ),
@@ -121,6 +121,14 @@ final goRouter = GoRouter(
     GoRoute(
       path: RouteNames.splash,
       builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.onboarding,
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.topicSelection,
+      builder: (context, state) => const TopicSelectionScreen(),
     ),
     GoRoute(
       path: RouteNames.login,

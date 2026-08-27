@@ -5,19 +5,19 @@ class AppColors {
   AppColors._();
 
   // === PRIMARY ===
-  static const primary = Color(0xFF1A237E);
-  static const primaryLight = Color(0xFF3949AB);
-  static const primaryDark = Color(0xFF0D1442);
+  static const primary = Color(0xFFD8201D);
+  static const primaryLight = Color(0xFFE32F2B);
+  static const primaryDark = Color(0xFFC11D1A);
 
   // === ACCENT ===
   static const accent = Color(0xFFFFD600);
   static const accentOrange = Color(0xFFFF9800);
 
   // === SEMANTIC (Vote Actions) ===
-  static const support = Color(0xFF4CAF50);
-  static const reject = Color(0xFFE53935);
-  static const warning = Color(0xFFFFA726);
-  static const info = Color(0xFF42A5F5);
+  static const support = Color(0xFF10B981); // Green 500
+  static const reject = Color(0xFFEF4444); // Red 500 (lebih terang untuk error)
+  static const warning = Color(0xFFF59E0B); // Amber 500
+  static const info = Color(0xFF3B82F6);   // Blue 500
 
   // === BACKGROUND ===
   static const bgLight = Color(0xFFF8F9FA);

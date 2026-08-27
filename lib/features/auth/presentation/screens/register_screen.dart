@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/services/supabase_service.dart';
 
 /// Register Screen — Daftar akun baru
@@ -22,9 +24,9 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
-  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  DateTime? _selectedDateOfBirth;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   bool _obscurePassword = true;
@@ -32,7 +34,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
-    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -40,34 +41,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedDateOfBirth == null) {
+      SnackbarUtils.showError(context, 'Tanggal lahir wajib diisi');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      final username = _usernameController.text.trim();
       final email = _emailController.text.trim();
-
-      // 1. Pre-flight check: Pastikan username belum dipakai
-      final existingUser = await SupabaseService.client
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .maybeSingle();
-
-      if (existingUser != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Username ini sudah digunakan. Cari yang lain yuk!',
-              ),
-              backgroundColor: AppColors.reject,
-            ),
-          );
-          setState(() => _isLoading = false);
-        }
-        return; // Hentikan proses jika username sudah ada
-      }
 
       // 2. Lanjut daftar ke Supabase Auth
       final response = await SupabaseService.client.auth.signUp(
@@ -75,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
         data: {
           'full_name': _fullNameController.text.trim(),
-          'username': username,
+          'date_of_birth': _selectedDateOfBirth!.toIso8601String().split('T')[0],
         },
       );
 
@@ -84,58 +66,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (response.user != null &&
             response.user!.identities != null &&
             response.user!.identities!.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Oops, Email ini sudah terdaftar. Silakan login ya!',
-              ),
-              backgroundColor: AppColors.reject,
-            ),
-          );
+          SnackbarUtils.showInfo(context, 'Email sudah terdaftar. Silakan login');
           return;
         }
 
         if (response.session == null) {
           // Email confirmation is enabled
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Registrasi sukses! Silakan cek email kamu untuk verifikasi.',
-              ),
-              backgroundColor: AppColors.support,
-            ),
-          );
+          SnackbarUtils.showSuccess(context, 'Cek email untuk verifikasi');
           context.go(RouteNames.login);
         } else {
           // Auto login (email confirmation disabled)
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Akun berhasil dibuat! Selamat datang di Kawal.Z 🎉',
-              ),
-              backgroundColor: AppColors.support,
-            ),
-          );
+          SnackbarUtils.showSuccess(context, 'Akun berhasil dibuat! Selamat datang 🎉');
           context.go(RouteNames.home);
         }
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
+        SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
+        SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -160,12 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!email.endsWith('.ac.id') && !email.endsWith('.edu')) {
         await googleSignIn.signOut();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal: Hanya menerima email mahasiswa (.ac.id / .edu)'),
-              backgroundColor: AppColors.reject,
-            ),
-          );
+        SnackbarUtils.showError(context, 'Hanya email mahasiswa (.ac.id / .edu)');
         }
         return;
       }
@@ -188,14 +134,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       debugPrint('Error Register Google: $e');
       await GoogleSignIn()
-          .signOut(); // Clear cached account so user can pick again
+          .signOut();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorHandler.getMessage(e)),
-            backgroundColor: AppColors.reject,
-          ),
-        );
+        SnackbarUtils.showError(context, AppErrorHandler.getMessage(e));
       }
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
@@ -245,19 +186,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSizes.p16),
 
-                // Username
+                // Tanggal Lahir
                 TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    hintText: 'raka.aktif',
-                    prefixIcon: Icon(Icons.alternate_email_rounded),
+                  decoration: InputDecoration(
+                    labelText: 'Tanggal Lahir',
+                    hintText: 'Pilih tanggal lahir',
+                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+                    suffixText: _selectedDateOfBirth != null
+                        ? '${_selectedDateOfBirth!.day}/${_selectedDateOfBirth!.month}/${_selectedDateOfBirth!.year}'
+                        : null,
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Username wajib diisi';
-                    if (v.length < 3) return 'Minimal 3 karakter';
-                    if (v.contains(' ')) return 'Tidak boleh ada spasi';
-                    return null;
+                  controller: TextEditingController(
+                    text: _selectedDateOfBirth != null
+                        ? '${_selectedDateOfBirth!.day}/${_selectedDateOfBirth!.month}/${_selectedDateOfBirth!.year}'
+                        : '',
+                  ),
+                  validator: (v) => _selectedDateOfBirth == null ? 'Tanggal lahir wajib diisi' : null,
+                  readOnly: true,
+                  onTap: () async {
+                    final now = DateTime.now();
+                    final initialDate = _selectedDateOfBirth ?? DateTime(now.year - 20, now.month, now.day);
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: initialDate,
+                      firstDate: DateTime(1950),
+                      lastDate: now,
+                      helpText: 'Pilih Tanggal Lahir',
+                      cancelText: 'Batal',
+                      confirmText: 'OK',
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedDateOfBirth = picked);
+                    }
                   },
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -345,16 +305,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Google Sign-In Button
                 SizedBox(
                   height: 52,
-                  child: OutlinedButton.icon(
+                  child: OutlinedButton(
                     onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
-                    icon: _isGoogleLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.border),
+                      foregroundColor: AppColors.textPrimary,
+                      backgroundColor: Colors.white,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isGoogleLoading)
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.g_mobiledata_rounded, size: 28),
-                    label: const Text('Daftar dengan Google'),
+                        else
+                          SvgPicture.asset(
+                            'assets/icons/google_logo.svg',
+                            width: 20,
+                            height: 20,
+                          ),
+                        const SizedBox(width: 12),
+                        const Text('Daftar dengan Google'),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSizes.p32),

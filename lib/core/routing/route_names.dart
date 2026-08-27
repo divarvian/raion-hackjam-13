@@ -4,6 +4,8 @@ class RouteNames {
 
   // Auth
   static const String splash = '/splash';
+  static const String onboarding = '/onboarding';
+  static const String topicSelection = '/topic-selection';
   static const String login = '/login';
   static const String register = '/register';
 

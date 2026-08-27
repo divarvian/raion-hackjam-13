@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/utils/xp_calculator.dart';

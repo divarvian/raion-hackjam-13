@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/services/supabase_service.dart';
+import '../../../../core/services/onboarding_service.dart';
+import '../../../../core/services/topic_preference_service.dart';
 
 /// Splash Screen — cek auth state lalu redirect
 class SplashScreen extends StatefulWidget {
@@ -22,14 +25,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _redirect() async {
-    // Tunggu sebentar untuk splash effect
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
+    final hasSeenOnboarding = await OnboardingService.hasSeenOnboarding();
+
     if (SupabaseService.isAuthenticated) {
       try {
-        // Verifikasi keaktifan user (mencegah 'Ghost User' auto-login jika sudah dihapus)
         await SupabaseService.client
             .from('profiles')
             .select('id')
@@ -38,50 +41,53 @@ class _SplashScreenState extends State<SplashScreen> {
 
         if (mounted) context.go(RouteNames.home);
       } catch (e) {
-        // Jika gagal (user dihapus atau session mati), paksa logout
         await SupabaseService.client.auth.signOut();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sesi kamu telah berakhir atau tidak valid. Silakan masuk kembali.'),
-              backgroundColor: AppColors.reject,
-            ),
-          );
+          SnackbarUtils.showError(context, 'Sesi berakhir. Silakan masuk kembali');
           context.go(RouteNames.login);
         }
       }
     } else {
-      context.go(RouteNames.login);
+      if (!hasSeenOnboarding) {
+        if (mounted) context.go(RouteNames.onboarding);
+      } else {
+        // Check if topics selected
+        final hasTopics = await TopicPreferenceService.getInterestedTopics();
+        if (hasTopics.isEmpty) {
+          if (mounted) context.go(RouteNames.topicSelection);
+        } else {
+          if (mounted) context.go(RouteNames.login);
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo placeholder
             Container(
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
                 Icons.bolt_rounded,
                 size: 48,
-                color: AppColors.primaryDark,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               'KAWAL.Z',
               style: AppTextStyles.headlineLarge.copyWith(
-                color: Colors.white,
+                color: AppColors.primary,
                 letterSpacing: 2,
               ),
             ),
@@ -89,12 +95,12 @@ class _SplashScreenState extends State<SplashScreen> {
             Text(
               'Adulting, but make it count.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: Colors.white70,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 48),
             const CircularProgressIndicator(
-              color: AppColors.accent,
+              color: AppColors.primary,
               strokeWidth: 2,
             ),
           ],

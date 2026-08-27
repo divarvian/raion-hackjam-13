@@ -6,8 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/routing/route_names.dart';
-import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/services/supabase_service.dart';
@@ -37,12 +35,8 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            // Force refresh providers
             ref.invalidate(topTrendingPolicyProvider);
             ref.invalidate(recentPoliciesProvider);
-            try {
-              await ref.read(topTrendingPolicyProvider.future);
-            } catch (_) {}
           },
           child: hasGlobalError 
             ? CustomScrollView(
@@ -65,7 +59,7 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: AppSizes.p8),
+                const SizedBox(height: AppSizes.p12),
 
                 // Header
                 Row(
@@ -75,34 +69,84 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hi, $firstName 👋',
-                          style: AppTextStyles.titleLarge.copyWith(
+                          'Selamat pagi,',
+                          style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "What's up, Indonesia?",
-                          style: AppTextStyles.headlineMedium,
+                          "What's up, ${_toCamelCase(firstName)}?",
+                          style: AppTextStyles.headlineMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pantau isu yang sedang ramai!',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_outlined, size: 28),
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.reject,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          firstName.substring(0, 2).toUpperCase(),
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSizes.p20),
 
-                // Subtitle
-                Text(
-                  '🔥 isu penting hari ini',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                // Category Tabs
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildCategoryTab('Trending', true),
+                      const SizedBox(width: 8),
+                      _buildCategoryTab('For You', false),
+                      const SizedBox(width: 8),
+                      _buildCategoryTab('Policy Watch', false),
+                    ],
                   ),
                 ),
-                const SizedBox(height: AppSizes.p12),
+                const SizedBox(height: AppSizes.p16),
+
+                // Trending subtitle
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.p16,
+                    vertical: AppSizes.p12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDD7DC),
+                    borderRadius: BorderRadius.circular(AppSizes.r12),
+                  ),
+                  child: Text(
+                    'Trending di Kawal.Z minggu ini',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.reject,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.p16),
 
                 // Trending Hero Card
                 topTrendingAsync.when(
@@ -126,9 +170,19 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Isu lainnya untuk kamu',
-                      style: AppTextStyles.titleLarge,
+                      style: AppTextStyles.titleLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    TextButton(onPressed: () {}, child: const Text('See all')),
+                    TextButton(
+                      onPressed: () {},
+                      child: Text(
+                        'Lihat semua',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.reject,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSizes.p8),
@@ -162,132 +216,160 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildTrendingHeroCard(BuildContext context, PolicyModel policy) {
     return GestureDetector(
       onTap: () {
-        // Navigate to detail
         context.go('/home/article/${policy.id}');
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSizes.p20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primaryDark, AppColors.primary],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppSizes.r16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Trending Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.reject,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'TRENDING',
-                style: AppTextStyles.caption.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              policy.title,
-              style: AppTextStyles.headlineSmall.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              policy.subtitle ?? 'Apa yang sebenarnya berubah?',
-              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
-            ),
-            const SizedBox(height: 16),
-
-            // AI TL;DR Box
-            if (policy.aiSummary.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(AppSizes.p16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSizes.r12),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.auto_awesome,
-                          color: AppColors.accent,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Ringkasan AI',
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: AppColors.accent,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ...policy.aiSummary.asMap().entries.map((entry) {
-                      final index = entry.key + 1;
-                      final text = entry.value;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: _buildSummaryPoint('0$index', text),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
-
-            // Read full story button
-            Row(
+            Stack(
               children: [
-                Text(
-                  'Read full story',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: Colors.white,
+                if (policy.thumbnailUrl != null)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppSizes.r16),
+                    ),
+                    child: Image.network(
+                      policy.thumbnailUrl!,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: double.infinity,
+                          height: 200,
+                          color: const Color(0xFFE8E8E8),
+                          child: const Icon(
+                            Icons.image_outlined,
+                            size: 64,
+                            color: Color(0xFFBDBDBD),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(AppSizes.r16),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      size: 64,
+                      color: Color(0xFFBDBDBD),
+                    ),
+                  ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.reject,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Trending #1',
+                      style: AppTextStyles.caption.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
               ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.p16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.reject.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      policy.category,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.reject,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    policy.title,
+                    style: AppTextStyles.headlineSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    policy.subtitle ?? 'Apa yang sebenarnya berubah?',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       Text(
+                        '${policy.sourceName ?? 'Kompas.id'} · ${DateFormat('dd MMM yyyy').format(policy.publishedAt)} · ${policy.estimatedReadMinutes} mnt',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.reject,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${policy.totalVotes} Komentar',
+                          style: AppTextStyles.caption.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSummaryPoint(String number, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          number,
-          style: AppTextStyles.labelLarge.copyWith(color: AppColors.accent),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-          ),
-        ),
-      ],
     );
   }
 
@@ -301,54 +383,110 @@ class HomeScreen extends ConsumerWidget {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSizes.p12),
-        padding: const EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppSizes.r12),
-          border: Border.all(color: AppColors.divider),
-        ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: categoryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSizes.r8),
+            if (policy.thumbnailUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.r12),
+                child: Image.network(
+                  policy.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      color: const Color(0xFFFDD7DC),
+                      child: const Icon(
+                        Icons.image_outlined,
+                        size: 32,
+                        color: Color(0xFFBDBDBD),
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDD7DC),
+                  borderRadius: BorderRadius.circular(AppSizes.r12),
+                ),
+                child: const Icon(
+                  Icons.image_outlined,
+                  size: 32,
+                  color: Color(0xFFBDBDBD),
+                ),
               ),
-              child: Icon(Icons.article_outlined, color: categoryColor),
-            ),
             const SizedBox(width: AppSizes.p12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    policy.category.toUpperCase(),
-                    style: AppTextStyles.caption.copyWith(
-                      color: categoryColor,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      policy.category,
+                      style: AppTextStyles.caption.copyWith(
+                        color: categoryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     policy.title,
-                    style: AppTextStyles.titleMedium,
+                    style: AppTextStyles.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(dateFormatted, style: AppTextStyles.caption),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$dateFormatted · 3 mnt',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textTertiary,
-            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryTab(String label, bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.reject : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isActive ? AppColors.reject : AppColors.border,
+        ),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: isActive ? Colors.white : AppColors.textPrimary,
+          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
     );
@@ -374,5 +512,10 @@ class HomeScreen extends ConsumerWidget {
       height: 350,
       borderRadius: AppSizes.r16,
     );
+  }
+
+  String _toCamelCase(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
   }
 }

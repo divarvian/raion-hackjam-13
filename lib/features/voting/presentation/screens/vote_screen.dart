@@ -6,8 +6,7 @@ import 'package:confetti/confetti.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/routing/route_names.dart';
-import '../../../../core/utils/error_handler.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../../home/domain/policy_model.dart';
@@ -61,9 +60,7 @@ class _VoteScreenState extends ConsumerState<VoteScreen> {
           });
           _confettiController.play();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? 'Gagal vote')),
-          );
+          SnackbarUtils.showError(context, result['error'] ?? 'Gagal vote');
         }
       }
     });
