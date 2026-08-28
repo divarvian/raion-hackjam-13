@@ -15,6 +15,7 @@ import '../../features/home/presentation/screens/article_detail_screen.dart';
 import '../../features/voting/presentation/screens/vote_screen.dart';
 import '../../features/trending/presentation/screens/trending_screen.dart';
 import '../../features/education/presentation/screens/education_screen.dart';
+import '../../features/education/presentation/screens/education_category_detail_screen.dart';
 import '../../features/education/presentation/screens/flashcard_viewer_screen.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -189,11 +190,18 @@ final goRouter = GoRouter(
               builder: (context, state) => const EducationScreen(),
               routes: [
                 GoRoute(
+                  name: RouteNames.categoryDetail,
+                  path: RouteNames.categoryDetail,
+                  builder: (context, state) {
+                    final id = state.pathParameters['id']!;
+                    return EducationCategoryDetailScreen(categoryId: id);
+                  },
+                ),
+                GoRoute(
                   name: RouteNames.flashcardViewer,
                   path: RouteNames.flashcardViewer,
                   builder: (context, state) {
                     final id = state.pathParameters['topicId']!;
-                    // We will create FlashcardViewerScreen next
                     return FlashcardViewerScreen(topicId: id);
                   },
                 ),

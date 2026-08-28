@@ -8,6 +8,8 @@ class FlashcardTopic {
   final int orderIndex;
   final bool isLocked;
   final int xpReward;
+  final int readTimeMinutes;
+  final List<String> keyTakeaways;
 
   FlashcardTopic({
     required this.id,
@@ -19,6 +21,8 @@ class FlashcardTopic {
     required this.orderIndex,
     required this.isLocked,
     required this.xpReward,
+    required this.readTimeMinutes,
+    required this.keyTakeaways,
   });
 
   factory FlashcardTopic.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,11 @@ class FlashcardTopic {
       orderIndex: json['order_index'] as int? ?? 0,
       isLocked: json['is_locked'] as bool? ?? false,
       xpReward: json['xp_reward'] as int? ?? 15,
+      readTimeMinutes: json['read_time_minutes'] as int? ?? 2,
+      keyTakeaways: (json['key_takeaways'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 }

@@ -20,7 +20,7 @@ class RouteNames {
   static const String articleDetail = 'article/:id';
   static const String vote = 'vote/:id';
   static const String trendingDetail = 'detail/:id';
-  static const String categoryDetail = 'category/:slug';
+  static const String categoryDetail = 'category/:id';
   static const String flashcardViewer = 'flashcard/:topicId';
   static const String educationProgress = 'progress';
   static const String levelInfo = 'level-info';

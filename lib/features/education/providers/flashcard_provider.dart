@@ -59,13 +59,16 @@ class FlashcardSessionState {
 class FlashcardSessionNotifier extends AutoDisposeFamilyNotifier<FlashcardSessionState, String> {
   int? _localIndex;
   bool? _localCompleted;
+  bool _isUpdating = false;
 
   @override
   FlashcardSessionState build(String arg) {
     final progressAsync = ref.watch(userFlashcardProgressProvider(arg));
+    final isDbCompleted = progressAsync.valueOrNull?.isCompleted ?? false;
+    
     return FlashcardSessionState(
-      currentIndex: _localIndex ?? progressAsync.valueOrNull?.lastCardIndex ?? 0,
-      isCompleted: _localCompleted ?? progressAsync.valueOrNull?.isCompleted ?? false,
+      currentIndex: _localIndex ?? (isDbCompleted ? 0 : (progressAsync.valueOrNull?.lastCardIndex ?? 0)),
+      isCompleted: _localCompleted ?? false, // Only show completion screen if completed in this local session
     );
   }
 
@@ -75,25 +78,33 @@ class FlashcardSessionNotifier extends AutoDisposeFamilyNotifier<FlashcardSessio
     required int totalCards,
     required int xpReward,
   }) async {
-    _localIndex = currentIndex;
-    _localCompleted = isCompleted;
-    state = state.copyWith(currentIndex: currentIndex, isCompleted: isCompleted);
+    if (_isUpdating) return;
+    _isUpdating = true;
     
-    final repo = ref.read(flashcardRepositoryProvider);
-    final previousProgress = await repo.getUserProgress(arg);
-    
-    await repo.saveProgress(
-      topicId: arg,
-      cardsCompleted: currentIndex,
-      isCompleted: isCompleted,
-      lastCardIndex: currentIndex,
-    );
-    
-    // Award XP if completed for the first time
-    if (isCompleted && (previousProgress == null || !previousProgress.xpAwarded)) {
-      await repo.awardTopicXp(arg, xpReward);
-      ref.invalidate(userFlashcardProgressProvider(arg));
-      ref.invalidate(userProfileProvider);
+    try {
+      _localIndex = currentIndex;
+      _localCompleted = isCompleted;
+      state = state.copyWith(currentIndex: currentIndex, isCompleted: isCompleted);
+
+      final repo = ref.read(flashcardRepositoryProvider);
+      
+      await repo.saveProgress(
+        topicId: arg,
+        cardsCompleted: currentIndex,
+        isCompleted: isCompleted,
+        lastCardIndex: currentIndex,
+      );
+
+      final previousProgress = ref.read(userFlashcardProgressProvider(arg)).valueOrNull;
+
+      // Award XP if completed for the first time
+      if (isCompleted && (previousProgress == null || !previousProgress.xpAwarded)) {
+        await repo.awardTopicXp(arg, xpReward);
+        ref.invalidate(userFlashcardProgressProvider(arg));
+        ref.invalidate(userProfileProvider);
+      }
+    } finally {
+      _isUpdating = false;
     }
   }
 }

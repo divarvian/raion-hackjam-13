@@ -11,7 +11,6 @@ import '../../../../core/widgets/app_shimmer.dart';
 import '../../domain/flashcard_topic_model.dart';
 import '../../providers/flashcard_provider.dart';
 
-/// Education Screen — Flashcard Survival Guide
 class EducationScreen extends ConsumerWidget {
   const EducationScreen({super.key});
 
@@ -25,20 +24,18 @@ class EducationScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            // Force refresh providers
-            ref.invalidate(flashcardCategoriesProvider);
-            ref.invalidate(allFlashcardTopicsProvider);
-            try {
-              await Future.wait([
-                ref.read(flashcardCategoriesProvider.future),
-                ref.read(allFlashcardTopicsProvider.future),
-              ]);
-            } catch (_) {}
-          },
-          child: hasGlobalError
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(flashcardCategoriesProvider);
+          ref.invalidate(allFlashcardTopicsProvider);
+          try {
+            await Future.wait([
+              ref.read(flashcardCategoriesProvider.future),
+              ref.read(allFlashcardTopicsProvider.future),
+            ]);
+          } catch (_) {}
+        },
+        child: hasGlobalError
             ? CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -53,155 +50,126 @@ class EducationScreen extends ConsumerWidget {
                   ),
                 ],
               )
-            : LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
+            : CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.p16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-              const SizedBox(height: AppSizes.p8),
-
-              // Header
-              Text('Edukasi', style: AppTextStyles.headlineMedium),
-              const SizedBox(height: 4),
-              Text(
-                '✨ Survival Guide',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.support,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppSizes.p8),
-              Text(
-                'Belajar hal penting,\nuntuk adulting cerdas.',
-                style: AppTextStyles.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Pilih kategori yang ingin kamu pelajari hari ini.',
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: AppSizes.p24),
-
-              // Categories
-              categoriesAsync.when(
-                data: (categories) {
-                  if (categories.isEmpty) {
-                    return const Text('Belum ada kategori edukasi.');
-                  }
-                  return Column(
-                    children: categories.map((cat) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSizes.p12),
-                        child: _buildCategoryCard(
-                          title: cat.name,
-                          description: cat.description ?? '',
-                          color: _parseColor(cat.colorHex),
-                          icon: _getIconData(cat.iconName),
+                slivers: [
+                  // Header Red Gradient
+                  SliverToBoxAdapter(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFFE52E2E), // Darker red
+                            AppColors.primary, // Red
+                          ],
                         ),
-                      );
-                    }).toList(),
-                  );
-                },
-                loading: () => const AppShimmerList(itemCount: 2, itemHeight: 80),
-                error: (err, stack) => const SizedBox.shrink(),
-              ),
-              
-              const SizedBox(height: AppSizes.p24),
-
-              // Popular Topics
-              Row(
-                children: [
-                  const Text('🔥', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Text('Topik Populer', style: AppTextStyles.titleLarge),
-                ],
-              ),
-              const SizedBox(height: AppSizes.p12),
-
-              allTopicsAsync.when(
-                data: (topics) {
-                  if (topics.isEmpty) {
-                    return const Text('Belum ada topik.');
-                  }
-                  return Column(
-                    children: topics.map((topic) {
-                      return _buildTopicCard(context, ref, topic);
-                    }).toList(),
-                  );
-                },
-                loading: () => const AppShimmerList(itemCount: 3, itemHeight: 90),
-                error: (err, stack) => const SizedBox.shrink(),
-              ),
-                      ],
+                      ),
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top + 24,
+                        left: 24,
+                        right: 24,
+                        bottom: 40,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'EDUKASI',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: Colors.white.withOpacity(0.8),
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Survival Guide',
+                            style: AppTextStyles.headlineLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Know your rights. Know what to do.',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ),
+
+                  // Content Body
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // Direkomendasikan
+                        Text(
+                          'Direkomendasikan',
+                          style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        allTopicsAsync.when(
+                          data: (topics) {
+                            if (topics.isEmpty) return const SizedBox.shrink();
+                            
+                            // Ambil topik pertama yang belum diselesaikan sebagai rekomendasi
+                            FlashcardTopic? recommendedTopic;
+                            for (var topic in topics) {
+                              final progress = ref.watch(userFlashcardProgressProvider(topic.id)).valueOrNull;
+                              if (progress == null || !progress.isCompleted) {
+                                recommendedTopic = topic;
+                                break;
+                              }
+                            }
+                            recommendedTopic ??= topics.first; // fallback
+                            
+                            return _buildRecommendedCard(context, ref, recommendedTopic);
+                          },
+                          loading: () => const AppShimmerList(itemCount: 1, itemHeight: 100),
+                          error: (err, stack) => const SizedBox.shrink(),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Jelajahi Topik
+                        Text(
+                          'Jelajahi Topik',
+                          style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        categoriesAsync.when(
+                          data: (categories) {
+                            if (categories.isEmpty) {
+                              return const Text('Belum ada kategori edukasi.');
+                            }
+                            return Column(
+                              children: categories.map((cat) {
+                                return _buildCategoryCard(context, ref, cat);
+                              }).toList(),
+                            );
+                          },
+                          loading: () => const AppShimmerList(itemCount: 3, itemHeight: 120),
+                          error: (err, stack) => const SizedBox.shrink(),
+                        ),
+                        
+                        const SizedBox(height: 40), // Bottom padding
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
-  Widget _buildCategoryCard({
-    required String title,
-    required String description,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppSizes.r16),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.titleLarge.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopicCard(BuildContext context, WidgetRef ref, FlashcardTopic topic) {
+  Widget _buildRecommendedCard(BuildContext context, WidgetRef ref, FlashcardTopic topic) {
     // Watch user progress to show completion checkmark
     final progressAsync = ref.watch(userFlashcardProgressProvider(topic.id));
     
@@ -210,91 +178,144 @@ class EducationScreen extends ConsumerWidget {
       orElse: () => false,
     );
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.p12),
-      child: Material(
+    // Dapatkan info kategori (asynchronous tapi kita berasumsi udah di-load di categoriesAsync)
+    final categoriesAsync = ref.read(flashcardCategoriesProvider);
+    final categoryName = categoriesAsync.valueOrNull?.firstWhere(
+      (c) => c.id == topic.categoryId,
+      orElse: () => throw Exception(),
+    ).name ?? 'Topik';
+
+    return Container(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.r12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
+          borderRadius: BorderRadius.circular(16),
           onTap: () {
             context.pushNamed(RouteNames.flashcardViewer, pathParameters: {'topicId': topic.id});
           },
-          borderRadius: BorderRadius.circular(AppSizes.r12),
-          child: Container(
-            padding: const EdgeInsets.all(AppSizes.p16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSizes.r12),
-              border: Border.all(color: isCompleted ? Colors.green.withValues(alpha: 0.5) : AppColors.divider),
-            ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(_getIconData(topic.iconName), color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: AppSizes.p12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    topic.title,
-                    style: AppTextStyles.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${topic.totalCards} kartu • +${topic.xpReward} XP', style: AppTextStyles.caption),
-                      if (isCompleted) ...[
-                        const SizedBox(width: 8),
-                        const Icon(Icons.check_circle, color: Colors.green, size: 14),
-                        const SizedBox(width: 4),
-                        Text('Selesai', style: AppTextStyles.caption.copyWith(color: Colors.green, fontWeight: FontWeight.bold)),
-                      ],
+                      Text(
+                        categoryName,
+                        style: AppTextStyles.labelMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        topic.title,
+                        style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            '${topic.totalCards} kartu • ±${topic.readTimeMinutes} mnt',
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 8),
+                          if (isCompleted)
+                            const Icon(Icons.check_circle, color: Colors.green, size: 16)
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '+${topic.xpReward} XP',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary),
+              ],
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary),
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
   }
 
-  Color _parseColor(String hexColor) {
-    hexColor = hexColor.replaceAll('#', '');
-    if (hexColor.length == 6) {
-      hexColor = 'FF$hexColor';
-    }
-    return Color(int.parse(hexColor, radix: 16));
-  }
+  Widget _buildCategoryCard(BuildContext context, WidgetRef ref, dynamic cat) {
+    // Hitung jumlah topik di dalam kategori ini
+    final allTopicsAsync = ref.watch(allFlashcardTopicsProvider);
+    final count = allTopicsAsync.valueOrNull?.where((t) => t.categoryId == cat.id).length ?? 0;
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'account_balance_wallet':
-        return Icons.account_balance_wallet_rounded;
-      case 'gavel':
-        return Icons.gavel_rounded;
-      case 'people':
-        return Icons.people_rounded;
-      case 'payments':
-        return Icons.payments_rounded;
-      case 'record_voice_over':
-        return Icons.record_voice_over_rounded;
-      case 'park':
-        return Icons.park_rounded;
-      case 'article':
-      default:
-        return Icons.article_rounded;
-    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              context.pushNamed(RouteNames.categoryDetail, pathParameters: {'id': cat.id});
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          cat.name,
+                          style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        if (cat.description != null && cat.description!.isNotEmpty) ...[
+                          Text(
+                            cat.description!,
+                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Text(
+                          '$count panduan',
+                          style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/routing/route_names.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../domain/flashcard_model.dart';
+import '../../domain/flashcard_topic_model.dart';
 import '../../providers/flashcard_provider.dart';
 
 class FlashcardViewerScreen extends ConsumerStatefulWidget {
@@ -36,15 +38,34 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
     final flashcardsAsync = ref.watch(flashcardsProvider(widget.topicId));
     final sessionState = ref.watch(flashcardSessionProvider(widget.topicId));
     _sessionNotifier = ref.read(flashcardSessionProvider(widget.topicId).notifier);
+    
+    // We fetch all topics to find the current topic info (for completion screen & category name)
+    final allTopicsAsync = ref.watch(allFlashcardTopicsProvider);
+    final categoriesAsync = ref.watch(flashcardCategoriesProvider);
+
+    final topic = allTopicsAsync.valueOrNull?.firstWhere(
+      (t) => t.id == widget.topicId,
+      orElse: () => FlashcardTopic(
+        id: widget.topicId, 
+        categoryId: '', 
+        title: '', 
+        iconName: 'article', 
+        totalCards: 0, 
+        orderIndex: 0, 
+        isLocked: false, 
+        xpReward: 15,
+        readTimeMinutes: 2,
+        keyTakeaways: [],
+      ),
+    );
+
+    final categoryName = categoriesAsync.valueOrNull?.firstWhere(
+      (c) => c.id == topic?.categoryId,
+      orElse: () => throw Exception(),
+    ).name ?? 'Edukasi';
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      appBar: AppBar(
-        title: const Text('Survival Guide', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFFF3F4F6), // Lighter grey background per design
       body: flashcardsAsync.when(
         data: (cards) {
           if (cards.isEmpty) {
@@ -53,48 +74,63 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
 
           // If session is completed or all cards are swiped
           if (sessionState.isCompleted || sessionState.currentIndex >= cards.length) {
-            return _buildCompletionScreen(context);
+            return _buildCompletionScreen(context, topic, categoryName);
           }
 
           return SafeArea(
             child: Column(
               children: [
-                // Progress Bar
+                // Custom App Bar / Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: Colors.black87),
+                        onPressed: () => context.pop(),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: LinearProgressIndicator(
-                          value: (sessionState.currentIndex) / cards.length,
-                          backgroundColor: AppColors.divider,
-                          color: AppColors.primary,
-                          minHeight: 8,
-                          borderRadius: BorderRadius.circular(4),
+                        child: Text(
+                          categoryName,
+                          style: AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      const SizedBox(width: 12),
                       Text(
-                        '${sessionState.currentIndex}/${cards.length}',
-                        style: AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary),
+                        '${(sessionState.currentIndex + 1).toString().padLeft(2, '0')}/${cards.length.toString().padLeft(2, '0')}',
+                        style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ),
                 
+                // Progress Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: LinearProgressIndicator(
+                    value: (sessionState.currentIndex + 1) / cards.length,
+                    backgroundColor: AppColors.divider,
+                    color: AppColors.primary,
+                    minHeight: 4,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+
                 // Swiper
                 Expanded(
                   child: CardSwiper(
                     controller: _swiperController,
                     cardsCount: cards.length,
-                    initialIndex: ref.read(flashcardSessionProvider(widget.topicId)).currentIndex,
+                    initialIndex: sessionState.currentIndex,
                     isLoop: false,
                     allowedSwipeDirection: const AllowedSwipeDirection.symmetric(horizontal: true),
                     onSwipe: (previousIndex, currentIndex, direction) {
                       final swipedCard = cards[previousIndex];
                       if (swipedCard.cardType == 'question' && !_answeredCardIndices.contains(previousIndex)) {
                         ScaffoldMessenger.of(context).clearSnackBars();
-                         SnackbarUtils.showWarning(context, 'Eits, jawab kuisnya dulu dong! 🤓');
+                        SnackbarUtils.showWarning(context, 'Eits, jawab kuisnya dulu dong! 🤓');
                         return false;
                       }
 
@@ -111,7 +147,7 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
                     },
                     padding: const EdgeInsets.all(AppSizes.p24),
                     cardBuilder: (context, index, horizontalOffsetPercentage, verticalOffsetPercentage) {
-                      return _buildCard(cards[index], index);
+                      return _buildCard(cards[index], index, cards.length);
                     },
                   ),
                 ),
@@ -121,12 +157,12 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
                   padding: const EdgeInsets.only(bottom: AppSizes.p32),
                   child: Builder(
                     builder: (context) {
-                      final topCardIndex = ref.read(flashcardSessionProvider(widget.topicId)).currentIndex;
+                      final topCardIndex = sessionState.currentIndex;
                       final isTopCardQuiz = topCardIndex < cards.length && cards[topCardIndex].cardType == 'question';
                       final isUnanswered = isTopCardQuiz && !_answeredCardIndices.contains(topCardIndex);
                       
                       return Text(
-                        isUnanswered ? 'Pilih salah satu jawaban di atas' : 'Geser ke kiri atau kanan untuk lanjut',
+                        isUnanswered ? 'Pilih salah satu jawaban di atas' : 'Swipe ke kiri untuk lanjut',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: isUnanswered ? AppColors.warning : AppColors.textTertiary,
                           fontWeight: isUnanswered ? FontWeight.bold : FontWeight.normal,
@@ -166,16 +202,25 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
     );
   }
 
-  Widget _buildCard(Flashcard card, int cardIndex) {
+  Widget _buildCard(Flashcard card, int cardIndex, int totalCards) {
     Color badgeColor = AppColors.primary;
-    String badgeText = 'Info';
+    Color badgeTextColor = AppColors.primary;
+    String badgeText = 'INFO';
     
-    if (card.cardType == 'fun_fact') {
-      badgeColor = Colors.orange;
-      badgeText = 'Fun Fact 💡';
+    // Default HOOK style (Reddish)
+    if (card.cardType == 'hook' || card.cardType == 'info' || card.cardType == null || card.cardType!.isEmpty) {
+      badgeColor = AppColors.primary.withOpacity(0.15);
+      badgeTextColor = AppColors.primary;
+      badgeText = card.cardType?.toUpperCase() ?? 'HOOK';
+      if (badgeText == '') badgeText = 'HOOK';
+    } else if (card.cardType == 'fun_fact') {
+      badgeColor = Colors.orange.withOpacity(0.15);
+      badgeTextColor = Colors.orange;
+      badgeText = 'FUN FACT';
     } else if (card.cardType == 'question') {
-      badgeColor = Colors.purple;
-      badgeText = 'Kuis 🤔';
+      badgeColor = Colors.purple.withOpacity(0.15);
+      badgeTextColor = Colors.purple;
+      badgeText = 'KUIS';
     }
 
     return Container(
@@ -184,7 +229,7 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
         borderRadius: BorderRadius.circular(AppSizes.r24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -196,21 +241,21 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: 0.15),
+              color: badgeColor,
               borderRadius: BorderRadius.circular(AppSizes.r12),
             ),
             child: Text(
               badgeText,
-              style: AppTextStyles.labelLarge.copyWith(color: badgeColor, fontWeight: FontWeight.bold),
+              style: AppTextStyles.labelMedium.copyWith(color: badgeTextColor, fontWeight: FontWeight.bold, letterSpacing: 0.5),
             ),
           ),
           const SizedBox(height: AppSizes.p24),
           if (card.title != null) ...[
             Text(
               card.title!,
-              style: AppTextStyles.headlineMedium.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.headlineMedium.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: AppSizes.p16),
           ],
@@ -232,44 +277,188 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
                 });
               },
             ),
-          ]
+          ],
+          
+          const Spacer(),
+          
+          // Page indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(totalCards, (i) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == cardIndex ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == cardIndex ? AppColors.primary : AppColors.divider,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );
   }
 
-
-  Widget _buildCompletionScreen(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 100),
-          const SizedBox(height: 24),
-          Text(
-            'Luar Biasa!',
-            style: AppTextStyles.headlineLarge,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Kamu telah menyelesaikan topik ini\ndan mendapatkan XP!',
-            style: AppTextStyles.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () => context.pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+  Widget _buildCompletionScreen(BuildContext context, FlashcardTopic? topic, String categoryName) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            const Spacer(),
+            // Main Icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33E52E2E), // Subtle red shadow
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                    offset: Offset(0, 10),
+                  )
+                ]
+              ),
+              child: const Center(
+                child: Icon(Icons.check_rounded, color: Colors.white, size: 48),
               ),
             ),
-            child: const Text('Selesai', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-        ],
+            const SizedBox(height: 24),
+            
+            // XP Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED), // Soft orange/yellow
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 20), // Darker orange
+                  const SizedBox(width: 4),
+                  Text(
+                    '+${topic?.xpReward ?? 15} XP Didapatkan!',
+                    style: const TextStyle(
+                      color: Color(0xFFD97706),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Text
+            Text(
+              'Guide Completed!',
+              style: AppTextStyles.headlineMedium.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Adulting knowledge unlocked.\nKamu sekarang tahu apa yang bisa dilakukan.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 32),
+
+            // Takeaways Box
+            if (topic != null && topic.keyTakeaways.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    )
+                  ]
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'YANG SUDAH KAMU PELAJARI',
+                      style: AppTextStyles.labelMedium.copyWith(color: AppColors.textTertiary, letterSpacing: 0.5),
+                    ),
+                    const SizedBox(height: 16),
+                    ...topic.keyTakeaways.map((takeaway) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.check_rounded, color: Colors.green, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              takeaway,
+                              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+              
+            const Spacer(),
+            
+            // Action Buttons
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  context.pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Jelajahi Guide Lain', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  // Kembali ke root edukasi terlebih dahulu agar saat user membuka tab edukasi lagi, tidak tertahan di layar ini
+                  context.go(RouteNames.education);
+                  
+                  // Baru kemudian pindah ke tab Home
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    if (context.mounted) {
+                      context.go(RouteNames.home);
+                    }
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: BorderSide(color: AppColors.divider),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Baca Isu Terkait', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -304,11 +493,11 @@ class _QuizCardContentState extends State<_QuizCardContent> {
         
         if (_selectedIndex != null) {
           if (isCorrect) {
-            bgColor = Colors.green.withValues(alpha: 0.1);
+            bgColor = Colors.green.withOpacity(0.1);
             borderColor = Colors.green;
             trailingIcon = Icons.check_circle;
           } else if (isSelected) {
-            bgColor = Colors.red.withValues(alpha: 0.1);
+            bgColor = Colors.red.withOpacity(0.1);
             borderColor = Colors.red;
             trailingIcon = Icons.cancel;
           }
