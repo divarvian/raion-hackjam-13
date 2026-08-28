@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      if (mounted) context.go(RouteNames.home);
+      if (mounted) context.go('${RouteNames.splash}?skip_delay=true');
     } on AuthException catch (e) {
       if (mounted) {
         if (e.code == 'email_not_confirmed') {
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
         accessToken: accessToken,
       );
 
-      if (mounted) context.go(RouteNames.home);
+      if (mounted) context.go('${RouteNames.splash}?skip_delay=true');
     } catch (e) {
       debugPrint('Error Login Google: $e');
       await GoogleSignIn()

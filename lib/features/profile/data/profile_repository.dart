@@ -24,4 +24,21 @@ class ProfileRepository {
       throw Exception('Gagal mengambil profil: $e');
     }
   }
+
+  /// Update interested topics for the current user
+  Future<void> updateInterestedTopics(List<String> topics) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User belum login');
+    }
+
+    try {
+      await _client
+          .from(SupabaseConstants.tableProfiles)
+          .update({'interested_topics': topics})
+          .eq('id', user.id);
+    } catch (e) {
+      throw Exception('Gagal menyimpan preferensi topik: $e');
+    }
+  }
 }

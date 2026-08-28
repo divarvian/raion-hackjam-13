@@ -12,7 +12,7 @@ class PolicyRepository {
     try {
       final response = await _client
           .from(SupabaseConstants.tablePolicies)
-          .select()
+          .select('*, comments(count)')
           .eq('is_trending', true)
           .eq('is_published', true)
           .order('trending_rank', ascending: true)
@@ -31,7 +31,7 @@ class PolicyRepository {
     try {
       final response = await _client
           .from(SupabaseConstants.tablePolicies)
-          .select()
+          .select('*, comments(count)')
           .eq('is_published', true)
           .order('published_at', ascending: false)
           .limit(limit);
@@ -47,7 +47,7 @@ class PolicyRepository {
     try {
       final response = await _client
           .from(SupabaseConstants.tablePolicies)
-          .select()
+          .select('*, comments(count)')
           .eq('id', id)
           .single();
 

@@ -47,13 +47,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       // Last page: navigate to login and mark onboarding as complete
       await OnboardingService.setOnboardingComplete();
-      if (mounted) context.go(RouteNames.topicSelection);
+      if (mounted) {
+        context.go(RouteNames.login);
+      }
     }
   }
 
   void _onSkipPressed() async {
     await OnboardingService.setOnboardingComplete();
-    if (mounted) context.go(RouteNames.topicSelection);
+    if (mounted) context.go(RouteNames.login);
   }
 
   @override

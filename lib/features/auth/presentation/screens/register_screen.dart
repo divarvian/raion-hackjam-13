@@ -77,7 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           // Auto login (email confirmation disabled)
           SnackbarUtils.showSuccess(context, 'Akun berhasil dibuat! Selamat datang 🎉');
-          context.go(RouteNames.home);
+          if (mounted) context.go('${RouteNames.splash}?skip_delay=true');
         }
       }
     } on AuthException catch (e) {
@@ -130,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         accessToken: accessToken,
       );
 
-      if (mounted) context.go(RouteNames.home);
+      if (mounted) context.go('${RouteNames.splash}?skip_delay=true');
     } catch (e) {
       debugPrint('Error Register Google: $e');
       await GoogleSignIn()

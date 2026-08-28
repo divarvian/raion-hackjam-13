@@ -4,7 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/routing/route_names.dart';
-import '../../../core/services/topic_preference_service.dart';
+import '../../../features/profile/data/profile_repository.dart';
 import '../../../core/utils/snackbar_utils.dart';
 
 class TopicSelectionScreen extends StatefulWidget {
@@ -38,10 +38,11 @@ class _TopicSelectionScreenState extends State<TopicSelectionScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await TopicPreferenceService.setInterestedTopics(_selectedTopics.toList());
+      final repo = ProfileRepository();
+      await repo.updateInterestedTopics(_selectedTopics.toList());
       
       if (mounted) {
-        context.go(RouteNames.login);
+        context.go(RouteNames.home);
       }
     } catch (e) {
       if (mounted) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
@@ -7,7 +8,6 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/services/onboarding_service.dart';
-import '../../../../core/services/topic_preference_service.dart';
 
 /// Splash Screen — cek auth state lalu redirect
 class SplashScreen extends StatefulWidget {
@@ -21,11 +21,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _redirect();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _redirect();
+    });
   }
 
   Future<void> _redirect() async {
-    await Future.delayed(const Duration(seconds: 2));
+    final uri = GoRouterState.of(context).uri;
+    final skipDelay = uri.queryParameters['skip_delay'] == 'true';
+
+    if (!skipDelay) {
+      await Future.delayed(const Duration(seconds: 2));
+    }
 
     if (!mounted) return;
 
@@ -33,31 +40,51 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (SupabaseService.isAuthenticated) {
       try {
-        await SupabaseService.client
+        final profile = await SupabaseService.client
             .from('profiles')
-            .select('id')
+            .select('id, interested_topics')
             .eq('id', SupabaseService.currentUser!.id)
             .single();
 
-        if (mounted) context.go(RouteNames.home);
-      } catch (e) {
+        final topics = profile['interested_topics'] as List<dynamic>? ?? [];
+
+        if (mounted) {
+          if (topics.isEmpty) {
+            context.go(RouteNames.topicSelection);
+          } else {
+            context.go(RouteNames.home);
+          }
+        }
+      } on PostgrestException catch (e) {
+        // PGRST116 berarti data (baris) tidak ditemukan.
+        // Ini terjadi jika akun user dihapus dari database.
+        if (e.code == 'PGRST116') {
+          await SupabaseService.client.auth.signOut();
+          if (mounted) {
+            SnackbarUtils.showError(context, 'Akun tidak ditemukan atau telah dihapus.');
+            context.go(RouteNames.login);
+          }
+        } else {
+          // Error database lainnya (server down sementara), fallback ke home
+          if (mounted) context.go(RouteNames.home);
+        }
+      } on AuthException catch (_) {
+        // Error terkait autentikasi (token tidak valid/expired)
         await SupabaseService.client.auth.signOut();
         if (mounted) {
           SnackbarUtils.showError(context, 'Sesi berakhir. Silakan masuk kembali');
           context.go(RouteNames.login);
         }
+      } catch (e) {
+        // Error jaringan (offline / timeout)
+        // Jangan paksa logout! Biarkan masuk ke Home menggunakan cache lokal.
+        if (mounted) context.go(RouteNames.home);
       }
     } else {
       if (!hasSeenOnboarding) {
         if (mounted) context.go(RouteNames.onboarding);
       } else {
-        // Check if topics selected
-        final hasTopics = await TopicPreferenceService.getInterestedTopics();
-        if (hasTopics.isEmpty) {
-          if (mounted) context.go(RouteNames.topicSelection);
-        } else {
-          if (mounted) context.go(RouteNames.login);
-        }
+        if (mounted) context.go(RouteNames.login);
       }
     }
   }

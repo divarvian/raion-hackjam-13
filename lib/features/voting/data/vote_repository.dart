@@ -19,4 +19,24 @@ class VoteRepository {
       throw Exception('Gagal melakukan vote: $e');
     }
   }
+
+  /// Check if user has already voted for a specific policy
+  Future<String?> getUserVote(String policyId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+    try {
+      final res = await _client
+          .from('votes')
+          .select('vote_type')
+          .eq('user_id', user.id)
+          .eq('policy_id', policyId)
+          .maybeSingle();
+      if (res != null) {
+        return res['vote_type'] as String;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

@@ -355,7 +355,7 @@ class HomeScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${policy.totalVotes} Komentar',
+                          '${policy.commentsCount} Komentar',
                           style: AppTextStyles.caption.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

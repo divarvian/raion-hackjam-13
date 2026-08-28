@@ -50,8 +50,7 @@ final goRouter = GoRouter(
 
     final isAuthRoute = currentPath == RouteNames.login ||
         currentPath == RouteNames.register ||
-        currentPath == RouteNames.onboarding ||
-        currentPath == RouteNames.topicSelection;
+        currentPath == RouteNames.onboarding;
     final isSplash = currentPath == RouteNames.splash;
 
     // Splash handles its own redirect
@@ -60,8 +59,8 @@ final goRouter = GoRouter(
     // Not logged in & not on auth page -> redirect to login
     if (!isLoggedIn && !isAuthRoute) return RouteNames.login;
 
-    // Logged in & on auth page -> redirect to home
-    if (isLoggedIn && isAuthRoute) return RouteNames.home;
+    // Logged in & on auth page -> redirect ke splash untuk pengecekan topik (tanpa delay)
+    if (isLoggedIn && isAuthRoute) return '${RouteNames.splash}?skip_delay=true';
 
     return null;
   },
