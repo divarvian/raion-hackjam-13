@@ -39,4 +39,22 @@ class VoteRepository {
       return null;
     }
   }
+  Future<List<Map<String, dynamic>>> getUserVoteHistory() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return [];
+    
+    try {
+      final res = await _client
+          .from('votes')
+          .select('policy_id, vote_type, created_at, policies(title)')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(5);
+          
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      print('Error fetching vote history: $e');
+      return [];
+    }
+  }
 }

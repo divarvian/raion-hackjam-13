@@ -15,7 +15,9 @@ class RouteNames {
   static const String education = '/education';
   static const String leaderboard = '/leaderboard';
   static const String profile = '/profile';
+  static const String profileStreak = 'streak';
 
+  // Categories (relative paths used inside GoRoute)
   // Sub-routes (relative paths used inside GoRoute)
   static const String articleDetail = 'article/:id';
   static const String vote = 'vote/:id';

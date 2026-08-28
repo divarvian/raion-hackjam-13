@@ -42,6 +42,25 @@ class PolicyRepository {
     }
   }
 
+  /// Fetch policies by categories (untuk For You tab)
+  Future<List<PolicyModel>> getPoliciesByCategories(List<String> categories, {int limit = 10}) async {
+    if (categories.isEmpty) return getRecentPolicies(limit: limit);
+    
+    try {
+      final response = await _client
+          .from(SupabaseConstants.tablePolicies)
+          .select('*, comments(count)')
+          .eq('is_published', true)
+          .inFilter('category', categories)
+          .order('published_at', ascending: false)
+          .limit(limit);
+
+      return (response as List).map((json) => PolicyModel.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Gagal mengambil daftar policy berdasar minat: $e');
+    }
+  }
+
   /// Fetch detail policy by ID
   Future<PolicyModel> getPolicyById(String id) async {
     try {

@@ -42,6 +42,12 @@ class AppTextStyles {
     color: AppColors.textPrimary,
   );
 
+  static TextStyle titleSmall = GoogleFonts.poppins(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textPrimary,
+  );
+
   // === BODY ===
   static TextStyle bodyLarge = GoogleFonts.poppins(
     fontSize: 16,
@@ -74,6 +80,12 @@ class AppTextStyles {
   static TextStyle labelMedium = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+  );
+
+  static TextStyle labelSmall = GoogleFonts.poppins(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
   );
 

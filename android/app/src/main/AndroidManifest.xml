@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="raion_hackjam_13"
+        android:label="Kawal.Z"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

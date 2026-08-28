@@ -39,3 +39,8 @@ final voteProvider = StateNotifierProvider<VoteNotifier, AsyncValue<Map<String, 
   final repo = ref.watch(voteRepositoryProvider);
   return VoteNotifier(repo, ref);
 });
+
+final userVoteHistoryProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final repo = ref.watch(voteRepositoryProvider);
+  return repo.getUserVoteHistory();
+});

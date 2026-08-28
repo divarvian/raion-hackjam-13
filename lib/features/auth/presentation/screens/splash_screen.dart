@@ -50,11 +50,13 @@ class _SplashScreenState extends State<SplashScreen> {
         // Sync Google avatar/name to profiles table if missing
         final googleAvatar = user.userMetadata?['avatar_url'] as String?;
         final googleName = user.userMetadata?['full_name'] as String?;
-        
+
         bool needsSync = false;
         Map<String, dynamic> updates = {};
-        
-        if (googleAvatar != null && (profile['avatar_url'] == null || profile['avatar_url'] != googleAvatar)) {
+
+        if (googleAvatar != null &&
+            (profile['avatar_url'] == null ||
+                profile['avatar_url'] != googleAvatar)) {
           updates['avatar_url'] = googleAvatar;
           needsSync = true;
         }
@@ -85,7 +87,10 @@ class _SplashScreenState extends State<SplashScreen> {
         if (e.code == 'PGRST116') {
           await SupabaseService.client.auth.signOut();
           if (mounted) {
-            SnackbarUtils.showError(context, 'Akun tidak ditemukan atau telah dihapus.');
+            SnackbarUtils.showError(
+              context,
+              'Akun tidak ditemukan atau telah dihapus.',
+            );
             context.go(RouteNames.login);
           }
         } else {
@@ -96,7 +101,10 @@ class _SplashScreenState extends State<SplashScreen> {
         // Error terkait autentikasi (token tidak valid/expired)
         await SupabaseService.client.auth.signOut();
         if (mounted) {
-          SnackbarUtils.showError(context, 'Sesi berakhir. Silakan masuk kembali');
+          SnackbarUtils.showError(
+            context,
+            'Sesi berakhir. Silakan masuk kembali',
+          );
           context.go(RouteNames.login);
         }
       } catch (e) {
@@ -116,45 +124,38 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.55, 1.0],
+            colors: [Color(0xFF7F1D1D), Color(0xFFC41E1E), Color(0xFFEF4444)],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/icons/kawalz_white_logo.png',
+                width: 80,
+                height: 80,
               ),
-              child: const Icon(
-                Icons.bolt_rounded,
-                size: 48,
+              const SizedBox(height: 24),
+              Text(
+                'Adulting but make it fun',
+                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 48),
+              const CircularProgressIndicator(
                 color: Colors.white,
+                strokeWidth: 2,
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'KAWAL.Z',
-              style: AppTextStyles.headlineLarge.copyWith(
-                color: AppColors.primary,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Adulting, but make it count.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 48),
-            const CircularProgressIndicator(
-              color: AppColors.primary,
-              strokeWidth: 2,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

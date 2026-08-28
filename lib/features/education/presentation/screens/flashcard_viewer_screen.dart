@@ -436,15 +436,12 @@ class _FlashcardViewerScreenState extends ConsumerState<FlashcardViewerScreen> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                  // Kembali ke root edukasi terlebih dahulu agar saat user membuka tab edukasi lagi, tidak tertahan di layar ini
-                  context.go(RouteNames.education);
-                  
-                  // Baru kemudian pindah ke tab Home
-                  Future.delayed(const Duration(milliseconds: 50), () {
-                    if (context.mounted) {
-                      context.go(RouteNames.home);
-                    }
-                  });
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(RouteNames.education);
+                  }
+                  context.go(RouteNames.home);
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,

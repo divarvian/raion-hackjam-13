@@ -12,21 +12,33 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../domain/policy_model.dart';
 import '../../providers/policy_provider.dart';
+import '../../../profile/providers/profile_provider.dart';
 
 /// Beranda — What's Up Indonesia (AI TL;DR Feed)
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _activeTabIndex = 0; // 0 = Trending, 1 = For You, 2 = Policy Watch
+
+  @override
+  Widget build(BuildContext context) {
     // Fetch data via Riverpod
     final topTrendingAsync = ref.watch(topTrendingPolicyProvider);
     final recentPoliciesAsync = ref.watch(recentPoliciesProvider);
+    final forYouPoliciesAsync = ref.watch(forYouPoliciesProvider);
+    final profileAsync = ref.watch(userProfileProvider);
 
-    // Get user name (fallback to "User" if not set in metadata yet)
+    // Get user name and avatar dynamically from profile provider
     final user = SupabaseService.currentUser;
-    final fullName = user?.userMetadata?['full_name'] as String? ?? 'Warga';
+    final profileData = profileAsync.valueOrNull;
+    final fullName = profileData?['display_name'] as String? ?? user?.userMetadata?['full_name'] as String? ?? 'Warga';
     final firstName = fullName.split(' ').first;
+    final avatarUrl = profileData?['avatar_url'] as String? ?? user?.userMetadata?['avatar_url'] as String?;
 
     final hasGlobalError = topTrendingAsync.hasError || recentPoliciesAsync.hasError;
     final globalError = topTrendingAsync.error ?? recentPoliciesAsync.error;
@@ -62,42 +74,52 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 const SizedBox(height: AppSizes.p12),
 
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Selamat pagi,',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "What's up, ${_toCamelCase(firstName)}?",
-                          style: AppTextStyles.headlineMedium.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Pantau isu yang sedang ramai!',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppAvatar(
-                      radius: 28,
-                      avatarUrl: user?.userMetadata?['avatar_url'],
-                      name: fullName,
-                    ),
-                  ],
-                ),
+                 // Header
+                 Row(
+                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                   children: [
+                     Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           'Selamat pagi,',
+                           style: AppTextStyles.bodyMedium.copyWith(
+                             color: AppColors.textSecondary,
+                           ),
+                         ),
+                         const SizedBox(height: 4),
+                         Text(
+                           "What's up, ${_toCamelCase(firstName)}?",
+                           style: AppTextStyles.headlineMedium.copyWith(
+                             fontWeight: FontWeight.bold,
+                           ),
+                         ),
+                         const SizedBox(height: 4),
+                         Text(
+                           'Pantau isu yang sedang ramai!',
+                           style: AppTextStyles.bodySmall.copyWith(
+                             color: AppColors.textSecondary,
+                           ),
+                         ),
+                       ],
+                     ),
+                     Row(
+                       children: [
+                         Image.asset(
+                           'assets/images/mascot_think.png',
+                           width: 56,
+                           height: 56,
+                         ),
+                         const SizedBox(width: 8),
+                         AppAvatar(
+                           radius: 20,
+                           avatarUrl: avatarUrl,
+                           name: fullName,
+                         ),
+                       ],
+                     ),
+                   ],
+                 ),
                 const SizedBox(height: AppSizes.p20),
 
                 // Category Tabs
@@ -105,95 +127,197 @@ class HomeScreen extends ConsumerWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildCategoryTab('Trending', true),
+                      _buildCategoryTab('Trending', _activeTabIndex == 0, () => setState(() => _activeTabIndex = 0)),
                       const SizedBox(width: 8),
-                      _buildCategoryTab('For You', false),
+                      _buildCategoryTab('For You', _activeTabIndex == 1, () => setState(() => _activeTabIndex = 1)),
                       const SizedBox(width: 8),
-                      _buildCategoryTab('Policy Watch', false),
+                      _buildCategoryTab('Policy Watch', _activeTabIndex == 2, () => setState(() => _activeTabIndex = 2)),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppSizes.p16),
 
-                // Trending subtitle
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.p16,
-                    vertical: AppSizes.p12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFDD7DC),
-                    borderRadius: BorderRadius.circular(AppSizes.r12),
-                  ),
-                  child: Text(
-                    'Trending di Kawal.Z minggu ini',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.reject,
-                      fontWeight: FontWeight.w600,
+                // Conditionally render body based on active tab
+                if (_activeTabIndex == 0) ...[
+                  // Trending subtitle
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.p16,
+                      vertical: AppSizes.p12,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.p16),
-
-                // Trending Hero Card
-                topTrendingAsync.when(
-                  data: (policy) {
-                    if (policy == null) {
-                      return _buildEmptyState(
-                        'Belum ada isu trending hari ini.',
-                      );
-                    }
-                    return _buildTrendingHeroCard(context, policy);
-                  },
-                  loading: () => _buildHeroShimmer(),
-                  error: (error, stack) => const SizedBox.shrink(),
-                ),
-
-                const SizedBox(height: AppSizes.p24),
-
-                // Latest Updates section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Isu lainnya untuk kamu',
-                      style: AppTextStyles.titleLarge.copyWith(
-                        fontWeight: FontWeight.bold,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDD7DC),
+                      borderRadius: BorderRadius.circular(AppSizes.r12),
+                    ),
+                    child: Text(
+                      'Trending di Kawal.Z minggu ini',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.reject,
+                        fontWeight: FontWeight.w600,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    TextButton(
-                      onPressed: () => context.go('/trending'),
-                      child: Text(
-                        'Lihat semua',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.reject,
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+
+                  // Trending Hero Card
+                  topTrendingAsync.when(
+                    data: (policy) {
+                      if (policy == null) {
+                        return _buildEmptyState(
+                          'Belum ada isu trending hari ini.',
+                        );
+                      }
+                      return _buildTrendingHeroCard(context, policy);
+                    },
+                    loading: () => _buildHeroShimmer(),
+                    error: (error, stack) => const SizedBox.shrink(),
+                  ),
+
+                  const SizedBox(height: AppSizes.p24),
+
+                  // Latest Updates section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Isu lainnya untuk kamu',
+                        style: AppTextStyles.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.p8),
-
-                // Article list items
-                recentPoliciesAsync.when(
-                  data: (policies) {
-                    if (policies.isEmpty) {
-                      return _buildEmptyState('Belum ada isu baru.');
-                    }
-                    return Column(
-                      children: policies
-                          .map((policy) => _buildArticleItem(context, policy))
-                          .toList(),
-                    );
-                  },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
-                    child: AppShimmerList(itemCount: 3, itemHeight: 90),
+                      TextButton(
+                        onPressed: () => context.go('/trending'),
+                        child: Text(
+                          'Lihat semua',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.reject,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  error: (error, stack) => const SizedBox.shrink(),
-                ),
+                  const SizedBox(height: AppSizes.p8),
+
+                  // Article list items
+                  recentPoliciesAsync.when(
+                    data: (policies) {
+                      if (policies.isEmpty) {
+                        return _buildEmptyState('Belum ada isu baru.');
+                      }
+                      return Column(
+                        children: policies
+                            .map((policy) => _buildArticleItem(context, policy))
+                            .toList(),
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: AppShimmerList(itemCount: 3, itemHeight: 90),
+                    ),
+                    error: (error, stack) => const SizedBox.shrink(),
+                  ),
+                ] else if (_activeTabIndex == 1) ...[
+                  // For You section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Dipersonalisasi untukmu',
+                        style: AppTextStyles.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.p8),
+                  forYouPoliciesAsync.when(
+                    data: (policies) {
+                      if (policies.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.tune_rounded,
+                                  size: 64,
+                                  color: AppColors.textTertiary,
+                                ),
+                                const SizedBox(height: AppSizes.p16),
+                                Text(
+                                  'Belum Ada Topik Minat',
+                                  style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: AppSizes.p8),
+                                Text(
+                                  'Tambahkan topik yang kamu sukai di menu Profil agar kami bisa menyajikan berita dan isu yang paling sesuai untukmu.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: policies
+                            .map((policy) => _buildArticleItem(context, policy))
+                            .toList(),
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: AppShimmerList(itemCount: 3, itemHeight: 90),
+                    ),
+                    error: (error, stack) => const SizedBox.shrink(),
+                  ),
+                ] else if (_activeTabIndex == 2) ...[
+                  // Policy Watch (Coming Soon)
+                  const SizedBox(height: AppSizes.p32),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.visibility_outlined,
+                          size: 64,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        Text(
+                          'Pantau Kebijakan Lebih Dekat',
+                          style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSizes.p8),
+                        Text(
+                          'Fitur unggulan untuk melacak jalannya sidang, mengawal janji politisi, dan transparansi kebijakan sedang dalam tahap pengembangan.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            'Segera Hadir',
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -458,24 +582,27 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryTab(String label, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: isActive ? AppColors.reject : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isActive ? AppColors.reject : AppColors.border,
+  Widget _buildCategoryTab(String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
         ),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: isActive ? Colors.white : AppColors.textPrimary,
-          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.reject : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? AppColors.reject : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: isActive ? Colors.white : AppColors.textPrimary,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ),
     );

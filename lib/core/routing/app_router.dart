@@ -19,6 +19,7 @@ import '../../features/education/presentation/screens/education_category_detail_
 import '../../features/education/presentation/screens/flashcard_viewer_screen.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/streak_milestone_screen.dart';
 import '../services/supabase_service.dart';
 import '../widgets/main_shell.dart';
 import 'route_names.dart';
@@ -226,6 +227,21 @@ final goRouter = GoRouter(
             GoRoute(
               path: RouteNames.profile,
               builder: (context, state) => const ProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: RouteNames.profileStreak,
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final currentStreak = extra?['currentStreak'] as int? ?? 0;
+                    final longestStreak = extra?['longestStreak'] as int? ?? 0;
+                    
+                    return StreakMilestoneScreen(
+                      currentStreak: currentStreak,
+                      longestStreak: longestStreak,
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
