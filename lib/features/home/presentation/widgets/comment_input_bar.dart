@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../profile/providers/profile_provider.dart';
-import '../../data/comment_repository.dart';
 import '../../providers/comment_provider.dart';
 
 class CommentInputBar extends ConsumerStatefulWidget {
@@ -114,13 +114,10 @@ class _CommentInputBarState extends ConsumerState<CommentInputBar> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
-                child: CircleAvatar(
+                child: AppAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    initials,
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
+                  avatarUrl: profileAsync.value?['avatar_url'],
+                  name: fullName,
                 ),
               ),
               const SizedBox(width: 12),

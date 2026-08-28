@@ -9,6 +9,7 @@ class CommentModel {
   
   // From joined profiles table
   final String userFullName;
+  final String? userAvatarUrl;
   
   // Local state for UI
   final bool hasLiked;
@@ -23,6 +24,7 @@ class CommentModel {
     required this.likes,
     required this.createdAt,
     required this.userFullName,
+    this.userAvatarUrl,
     this.hasLiked = false,
     this.replies = const [],
   });
@@ -30,6 +32,7 @@ class CommentModel {
   factory CommentModel.fromJson(Map<String, dynamic> json, {bool hasLiked = false}) {
     final profile = json['profiles'] as Map<String, dynamic>?;
     final fullName = profile?['full_name'] as String? ?? 'User';
+    final avatar = profile?['avatar_url'] as String?;
 
     return CommentModel(
       id: json['id'] as String,
@@ -40,6 +43,7 @@ class CommentModel {
       likes: json['likes_count'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       userFullName: fullName,
+      userAvatarUrl: avatar,
       hasLiked: hasLiked,
       replies: [],
     );
@@ -54,6 +58,7 @@ class CommentModel {
     int? likes,
     DateTime? createdAt,
     String? userFullName,
+    String? userAvatarUrl,
     bool? hasLiked,
     List<CommentModel>? replies,
   }) {
@@ -66,6 +71,7 @@ class CommentModel {
       likes: likes ?? this.likes,
       createdAt: createdAt ?? this.createdAt,
       userFullName: userFullName ?? this.userFullName,
+      userAvatarUrl: userAvatarUrl ?? this.userAvatarUrl,
       hasLiked: hasLiked ?? this.hasLiked,
       replies: replies ?? this.replies,
     );

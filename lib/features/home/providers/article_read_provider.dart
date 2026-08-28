@@ -5,34 +5,65 @@ import '../../leaderboard/providers/leaderboard_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import 'policy_provider.dart';
 
+class ArticleReadState {
+  final int secondsPassed;
+  final bool hasReachedBottom;
+  final bool xpAwarded;
+
+  ArticleReadState({
+    required this.secondsPassed,
+    required this.hasReachedBottom,
+    required this.xpAwarded,
+  });
+}
+
 /// Provider untuk mengelola state anti-farming pada artikel.
 /// Logika: Harus stay > 30 detik DAN scroll mentok bawah untuk dapat +10 XP.
-class ArticleReadNotifier extends AutoDisposeFamilyAsyncNotifier<bool, String> {
+class ArticleReadNotifier extends AutoDisposeFamilyAsyncNotifier<ArticleReadState, String> {
   Timer? _timer;
   int _secondsPassed = 0;
   bool _hasReachedBottom = false;
   bool _xpAwarded = false;
 
   @override
-  FutureOr<bool> build(String arg) {
-    // Start timer saat pertama kali dibuka
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _secondsPassed++;
-      _checkConditions();
-    });
+  FutureOr<ArticleReadState> build(String arg) async {
+    final repo = ref.read(policyRepositoryProvider);
+    _xpAwarded = await repo.hasReadArticle(arg);
+    
+    if (!_xpAwarded) {
+      // Start timer saat pertama kali dibuka HANYA JIKA belum dapat XP
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        _secondsPassed++;
+        _updateState();
+        _checkConditions();
+      });
+    }
     
     // Cleanup timer saat screen ditutup (provider di-dispose)
     ref.onDispose(() {
       _timer?.cancel();
     });
     
-    return false; // false = belum dapat XP
+    return _buildCurrentState();
+  }
+
+  ArticleReadState _buildCurrentState() {
+    return ArticleReadState(
+      secondsPassed: _secondsPassed,
+      hasReachedBottom: _hasReachedBottom,
+      xpAwarded: _xpAwarded,
+    );
+  }
+
+  void _updateState() {
+    state = AsyncValue.data(_buildCurrentState());
   }
 
   /// Dipanggil dari ScrollController ketika user mentok bawah
   void setReachedBottom() {
     if (!_hasReachedBottom) {
       _hasReachedBottom = true;
+      _updateState();
       _checkConditions();
     }
   }
@@ -42,8 +73,6 @@ class ArticleReadNotifier extends AutoDisposeFamilyAsyncNotifier<bool, String> {
     
     // Syarat: min 30 detik & sudah scroll ke bawah
     if (_secondsPassed >= 30 && _hasReachedBottom) {
-      _xpAwarded = true;
-      
       // Hit RPC Supabase
       try {
         final repo = ref.read(policyRepositoryProvider);
@@ -53,11 +82,16 @@ class ArticleReadNotifier extends AutoDisposeFamilyAsyncNotifier<bool, String> {
         );
         
         if (result['success'] == true) {
+          _xpAwarded = true; // Set local state only if backend success
           // Invalidate to update statistics
           ref.invalidate(userProfileProvider);
           ref.invalidate(topUsersProvider);
           
-          state = const AsyncValue.data(true); // true = XP berhasil di-award
+          _updateState();
+        } else {
+           // Jika backend menolak (misal sudah pernah), stop _xpAwarded agar tidak terus dipanggil
+           _xpAwarded = true; 
+           _updateState();
         }
       } catch (e) {
         // Abaikan error di UI jika gagal (misal koneksi mati)
@@ -68,6 +102,6 @@ class ArticleReadNotifier extends AutoDisposeFamilyAsyncNotifier<bool, String> {
 }
 
 final articleReadProvider = AutoDisposeAsyncNotifierProviderFamily<
-    ArticleReadNotifier, bool, String>(
+    ArticleReadNotifier, ArticleReadState, String>(
   () => ArticleReadNotifier(),
 );

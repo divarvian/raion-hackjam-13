@@ -28,6 +28,7 @@ class ArticleDetailScreen extends ConsumerStatefulWidget {
 
 class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _articleEndKey = GlobalKey();
   final TextEditingController _commentController = TextEditingController();
 
   @override
@@ -45,9 +46,13 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - 50) {
-      ref.read(articleReadProvider(widget.policyId).notifier).setReachedBottom();
+    if (_articleEndKey.currentContext != null) {
+      final RenderBox box = _articleEndKey.currentContext!.findRenderObject() as RenderBox;
+      final position = box.localToGlobal(Offset.zero);
+      // Jika widget sudah masuk ke layar (posisi Y kurang dari tinggi layar)
+      if (position.dy < MediaQuery.of(context).size.height) {
+        ref.read(articleReadProvider(widget.policyId).notifier).setReachedBottom();
+      }
     }
   }
 
@@ -56,10 +61,12 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     final policyAsync = ref.watch(policyDetailProvider(widget.policyId));
     ref.watch(chatbotProvider(widget.policyId));
     
-    ref.listen<AsyncValue<bool>>(
+    ref.listen<AsyncValue<ArticleReadState>>(
       articleReadProvider(widget.policyId),
       (previous, next) {
-        if (next.value == true && previous?.value != true) {
+        // Hanya tampilkan snackbar jika sebelumnya `xpAwarded` adalah false (sedang dipantau)
+        // dan sekarang menjadi true. Jika `previous` null, berarti ini inisialisasi awal.
+        if (previous != null && previous.value?.xpAwarded == false && next.value?.xpAwarded == true) {
           SnackbarUtils.showSuccess(context, 'Hebat! Kamu dapat +10 XP dari membaca!');
         }
       },
@@ -246,6 +253,14 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                                   policy.fullContent,
                                   style: AppTextStyles.bodyMedium.copyWith(height: 1.6),
                                 ),
+                                const SizedBox(height: 32),
+                                
+                                // Reading Progress Widget (Target untuk setReachedBottom)
+                                ReadingProgressWidget(
+                                  key: _articleEndKey,
+                                  policyId: policy.id,
+                                ),
+                                
                                 const SizedBox(height: 24),
                                 OutlinedButton(
                                   onPressed: () async {
@@ -444,6 +459,102 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class ReadingProgressWidget extends ConsumerWidget {
+  final String policyId;
+  
+  const ReadingProgressWidget({super.key, required this.policyId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stateAsync = ref.watch(articleReadProvider(policyId));
+    
+    return stateAsync.when(
+      data: (state) {
+        if (state.xpAwarded) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'XP berhasil didapatkan dari artikel ini',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.orange.shade900,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final int remainingSeconds = (30 - state.secondsPassed).clamp(0, 30);
+        final double progress = state.secondsPassed / 30.0;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  strokeWidth: 3,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      state.hasReachedBottom 
+                          ? 'Tunggu sebentar lagi untuk XP...' 
+                          : 'Scroll sampai sini untuk XP',
+                      style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      remainingSeconds > 0
+                          ? '$remainingSeconds detik lagi'
+                          : 'Memproses XP...',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox(height: 60),
+      error: (_, __) => const SizedBox(height: 60),
     );
   }
 }

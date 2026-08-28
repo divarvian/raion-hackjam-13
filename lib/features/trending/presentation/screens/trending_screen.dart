@@ -12,11 +12,18 @@ import '../../../home/domain/policy_model.dart';
 import '../../providers/trending_provider.dart';
 
 /// Trending Screen — Sentimen Publik
-class TrendingScreen extends ConsumerWidget {
+class TrendingScreen extends ConsumerStatefulWidget {
   const TrendingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrendingScreen> createState() => _TrendingScreenState();
+}
+
+class _TrendingScreenState extends ConsumerState<TrendingScreen> {
+  String _selectedFilter = 'Semua';
+
+  @override
+  Widget build(BuildContext context) {
     final trendingAsync = ref.watch(trendingPoliciesProvider);
 
     return Scaffold(
@@ -52,25 +59,54 @@ class TrendingScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-              const SizedBox(height: AppSizes.p8),
-
+              const SizedBox(height: AppSizes.p16),
               // Header
-              Row(
-                children: [
-                  const Icon(Icons.emoji_events_rounded,
-                      color: AppColors.accent, size: 28),
-                  const SizedBox(width: 8),
-                  Text('Trending Topics', style: AppTextStyles.headlineMedium),
-                ],
-              ),
+              Text('Trending on Public', style: AppTextStyles.headlineMedium.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
               const SizedBox(height: 4),
-              Text(
-                'Isu paling panas menurut Gen Z',
-                style: AppTextStyles.bodySmall,
+              Text('Apa yang lagi ramai dibahas di Kawal.Z?', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              const SizedBox(height: AppSizes.p16),
+
+              // Warning Banner
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF4E5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Hasil polling di bawah ini murni opini warga Kawal.Z, bukan mewakili seluruh masyarakat Indonesia ya!',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: const Color(0xFFD97706),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                'Data berdasarkan akumulasi voting terbanyak',
-                style: AppTextStyles.caption,
+              const SizedBox(height: AppSizes.p16),
+
+              // Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('Semua', null),
+                    _buildFilterChip('Hype', null),
+                    _buildFilterChip('Negatif', AppColors.reject),
+                    _buildFilterChip('Positif', AppColors.support),
+                    _buildFilterChip('Minggu Ini', null),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSizes.p24),
 
@@ -81,53 +117,49 @@ class TrendingScreen extends ConsumerWidget {
                     return const Center(child: Text('Belum ada isu trending.'));
                   }
 
-                  // Top 3 for Podium
-                  final podiumPolicies = policies.take(3).toList();
-                  // The rest for Ranking List
-                  final listPolicies = policies.skip(3).toList();
+                  var filteredPolicies = policies.toList();
+                  
+                  // Filter Logic
+                  if (_selectedFilter == 'Negatif') {
+                    filteredPolicies = filteredPolicies.where((p) => p.rejectCount > p.supportCount && p.rejectCount > p.neutralCount).toList();
+                  } else if (_selectedFilter == 'Positif') {
+                    filteredPolicies = filteredPolicies.where((p) => p.supportCount > p.rejectCount && p.supportCount > p.neutralCount).toList();
+                  } else if (_selectedFilter == 'Minggu Ini') {
+                    final now = DateTime.now();
+                    filteredPolicies = filteredPolicies.where((p) => now.difference(p.publishedAt).inDays <= 7).toList();
+                  } else if (_selectedFilter == 'Hype') {
+                    // Sort by total votes descending
+                    filteredPolicies.sort((a, b) => b.totalVotes.compareTo(a.totalVotes));
+                  }
+
+                  if (filteredPolicies.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Text('Tidak ada isu untuk kategori ini.'),
+                      ),
+                    );
+                  }
+
+                  final heroPolicy = filteredPolicies.first;
+                  final listPolicies = filteredPolicies.skip(1).toList();
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: Text(
-                          '🏆 Top 3 Isu Terpanas',
-                          style: AppTextStyles.titleLarge,
-                        ),
-                      ),
+                      _buildHeroCard(context, heroPolicy),
                       const SizedBox(height: AppSizes.p16),
-
-                      // Podium cards (Rank 2, Rank 1, Rank 3)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (podiumPolicies.length > 1)
-                            Expanded(child: _buildPodiumCard(context, podiumPolicies[1], 2, 80)),
-                          const SizedBox(width: 8),
-                          if (podiumPolicies.isNotEmpty)
-                            Expanded(child: _buildPodiumCard(context, podiumPolicies[0], 1, 100)),
-                          const SizedBox(width: 8),
-                          if (podiumPolicies.length > 2)
-                            Expanded(child: _buildPodiumCard(context, podiumPolicies[2], 3, 70)),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.p32),
-
-                      if (listPolicies.isNotEmpty) ...[
-                        Text('Peringkat Isu Lainnya', style: AppTextStyles.titleLarge),
-                        const SizedBox(height: AppSizes.p12),
-                        ...listPolicies.asMap().entries.map((entry) {
-                          final index = entry.key + 4; // Start from rank 4
-                          final policy = entry.value;
-                          return _buildRankItem(context, index, policy);
-                        }),
-                      ],
+                      ...listPolicies.asMap().entries.map((entry) {
+                        final index = entry.key + 2; // Start from rank 2
+                        final policy = entry.value;
+                        return _buildRankItem(context, index, policy);
+                      }),
                     ],
                   );
                 },
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: AppShimmerList(itemCount: 5, itemHeight: 90),
+                  child: AppShimmerList(itemCount: 5, itemHeight: 120),
                 ),
                 error: (error, stack) => const SizedBox.shrink(),
               ),
@@ -143,152 +175,268 @@ class TrendingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPodiumCard(BuildContext context, PolicyModel policy, int rank, double height) {
-    Color rankColor;
-    if (rank == 1) {
-      rankColor = Colors.amber;
-    } else if (rank == 2) {
-      rankColor = Colors.grey.shade400;
-    } else {
-      rankColor = Colors.brown.shade300;
-    }
-    
-    // Calculate reject percentage for hype
-    final rejectPercent = policy.totalVotes > 0
-        ? ((policy.rejectCount / policy.totalVotes) * 100).round()
-        : 0;
-
+  Widget _buildFilterChip(String label, Color? dotColor) {
+    final isActive = _selectedFilter == label;
     return GestureDetector(
-      onTap: () => context.goNamed(RouteNames.articleDetail, pathParameters: {'id': policy.id}),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: rankColor,
-            child: Text(
-              '$rank',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+      onTap: () {
+        setState(() {
+          _selectedFilter = label;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.reject.withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? AppColors.reject : AppColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (dotColor != null) ...[
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isActive ? AppColors.reject : AppColors.textPrimary,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: height,
-            padding: const EdgeInsets.all(AppSizes.p8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: rankColor, width: 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(BuildContext context, PolicyModel policy) {
+    return GestureDetector(
+      onTap: () => context.goNamed(RouteNames.articleDetail, pathParameters: {'id': policy.id}),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  policy.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.thumb_down_rounded, size: 12, color: AppColors.reject),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$rejectPercent%',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: AppColors.reject,
-                        fontWeight: FontWeight.bold,
-                      ),
+                if (policy.thumbnailUrl != null)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Image.network(
+                      policy.thumbnailUrl!,
+                      width: double.infinity,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(180),
                     ),
-                  ],
+                  )
+                else
+                  _buildPlaceholderImage(180, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.reject,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      '#1',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    policy.category,
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    policy.title,
+                    style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSegmentedProgressBar(policy, showLabels: true),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${policy.totalVotes} suara',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildRankItem(BuildContext context, int rank, PolicyModel policy) {
-    final rejectPercent = policy.totalVotes > 0
-        ? ((policy.rejectCount / policy.totalVotes) * 100).round()
-        : 0;
-
     return GestureDetector(
       onTap: () => context.goNamed(RouteNames.articleDetail, pathParameters: {'id': policy.id}),
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppSizes.p12),
-        padding: const EdgeInsets.all(AppSizes.p16),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppSizes.r16),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: Row(
           children: [
-            Text(
-              '#$rank',
-              style: AppTextStyles.titleMedium.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: AppSizes.p16),
+            if (policy.thumbnailUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  policy.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(80, width: 80, borderRadius: BorderRadius.circular(12)),
+                ),
+              )
+            else
+              _buildPlaceholderImage(80, width: 80, borderRadius: BorderRadius.circular(12)),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    policy.title,
-                    style: AppTextStyles.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.group, size: 14, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.reject.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '#$rank',
+                          style: const TextStyle(color: AppColors.reject, fontWeight: FontWeight.bold, fontSize: 10),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        '${policy.totalVotes} Votes',
-                        style: AppTextStyles.caption,
+                        policy.category,
+                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    policy.title,
+                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSegmentedProgressBar(policy, showLabels: false),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${policy.totalVotes} suara',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
                 ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.reject.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Tolak $rejectPercent%',
-                style: AppTextStyles.labelMedium.copyWith(color: AppColors.reject),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSegmentedProgressBar(PolicyModel policy, {required bool showLabels}) {
+    // Prevent division by zero
+    int total = policy.totalVotes == 0 ? 1 : policy.totalVotes;
+    
+    // Order: Reject (Red), Support (Green), Neutral (Yellow)
+    int reject = policy.rejectCount;
+    int support = policy.supportCount;
+    int neutral = policy.neutralCount;
+
+    // Handle empty state gracefully
+    if (policy.totalVotes == 0) {
+      reject = 1; support = 0; neutral = 0; // Default look if 0 votes
+    }
+
+    final rejectP = ((reject / total) * 100).round();
+    final supportP = ((support / total) * 100).round();
+    final neutralP = ((neutral / total) * 100).round();
+
+    return Column(
+      children: [
+        if (showLabels) ...[
+          Row(
+            children: [
+              if (reject > 0) Expanded(flex: reject, child: Text('$rejectP%', style: const TextStyle(color: AppColors.reject, fontWeight: FontWeight.bold, fontSize: 11))),
+              if (support > 0) Expanded(flex: support, child: Text('$supportP%', style: const TextStyle(color: AppColors.support, fontWeight: FontWeight.bold, fontSize: 11))),
+              if (neutral > 0) Expanded(flex: neutral, child: Text('$neutralP%', style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+            ],
+          ),
+          const SizedBox(height: 4),
+        ],
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 6,
+            child: Row(
+              children: [
+                if (reject > 0) Expanded(flex: reject, child: Container(color: AppColors.reject)),
+                if (support > 0) Expanded(flex: support, child: Container(color: AppColors.support)),
+                if (neutral > 0) Expanded(flex: neutral, child: Container(color: AppColors.warning)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderImage(double height, {double? width, BorderRadius? borderRadius}) {
+    return Container(
+      width: width ?? double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: borderRadius,
+      ),
+      child: const Icon(Icons.image_outlined, color: Color(0xFF9CA3AF), size: 32),
     );
   }
 }

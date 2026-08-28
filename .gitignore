@@ -52,4 +52,4 @@ FULL_PLAN.md
 implementation_plan_update.md
 PRD_HACKJAM.pdf
 prd_images/
-migrate_add_dob_update_username.sql
+extract_png.py

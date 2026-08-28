@@ -25,9 +25,9 @@ class _InlineVotingWidgetState extends ConsumerState<InlineVotingWidget> {
   bool _isCheckingVote = true; // State untuk loading awal
 
   final Map<String, String> _options = {
-    'support': 'Sudah memadai',
-    'neutral': 'Netral / Belum Yakin',
-    'reject': 'Belum memadai',
+    'support': 'Setuju',
+    'neutral': 'Netral',
+    'reject': 'Tolak',
   };
 
   @override
@@ -235,13 +235,13 @@ class _InlineVotingWidgetState extends ConsumerState<InlineVotingWidget> {
         ? 'Setuju'
         : _submittedOption == 'neutral'
             ? 'Netral'
-            : 'Tidak Setuju';
+            : 'Tolak';
 
     final userChoiceColor = _submittedOption != null ? _getOptionColor(_submittedOption!) : Colors.black;
 
     final progressBars = [
       {'label': 'Setuju', 'percent': supportPercent, 'color': AppColors.support},
-      {'label': 'Tidak Setuju', 'percent': rejectPercent, 'color': AppColors.reject},
+      {'label': 'Tolak', 'percent': rejectPercent, 'color': AppColors.reject},
       {'label': 'Netral', 'percent': neutralPercent, 'color': AppColors.warning},
     ];
 

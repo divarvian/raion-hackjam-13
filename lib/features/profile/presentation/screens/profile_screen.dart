@@ -10,6 +10,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/utils/xp_calculator.dart';
 import '../../providers/profile_provider.dart';
 
@@ -62,13 +63,10 @@ class ProfileScreen extends ConsumerWidget {
                   Column(
                     children: [
                       // Avatar
-                      CircleAvatar(
+                      AppAvatar(
                         radius: 44,
-                        backgroundColor: AppColors.primary,
-                        backgroundImage: avatar != null ? NetworkImage(avatar) : null,
-                        child: avatar == null
-                            ? const Icon(Icons.person, size: 40, color: Colors.white)
-                            : null,
+                        avatarUrl: avatar,
+                        name: name,
                       ),
                       const SizedBox(height: AppSizes.p12),
 

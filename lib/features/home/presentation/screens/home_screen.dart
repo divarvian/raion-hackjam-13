@@ -8,6 +8,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_shimmer.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../domain/policy_model.dart';
 import '../../providers/policy_provider.dart';
@@ -90,22 +91,10 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: AppColors.reject,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          firstName.substring(0, 2).toUpperCase(),
-                          style: AppTextStyles.titleMedium.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                    AppAvatar(
+                      radius: 28,
+                      avatarUrl: user?.userMetadata?['avatar_url'],
+                      name: fullName,
                     ),
                   ],
                 ),
@@ -175,7 +164,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => context.go('/trending'),
                       child: Text(
                         'Lihat semua',
                         style: AppTextStyles.bodyMedium.copyWith(

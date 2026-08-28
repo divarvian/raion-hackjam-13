@@ -57,6 +57,26 @@ class PolicyRepository {
     }
   }
 
+  /// Check if user has already read and received XP for this article
+  Future<bool> hasReadArticle(String policyId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return false;
+    try {
+      final res = await _client
+          .from('article_reads')
+          .select('xp_awarded')
+          .eq('user_id', user.id)
+          .eq('policy_id', policyId)
+          .maybeSingle();
+      if (res != null) {
+        return res['xp_awarded'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Call RPC to award XP after reading article
   Future<Map<String, dynamic>> completeArticleRead({
     required String policyId,

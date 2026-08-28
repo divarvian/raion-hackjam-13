@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../profile/providers/profile_provider.dart';
 import '../../domain/comment_model.dart';
 import '../../providers/comment_provider.dart';
@@ -20,10 +21,8 @@ class CommentSection extends ConsumerStatefulWidget {
 class _CommentSectionState extends ConsumerState<CommentSection> {
   void _toggleLike(CommentModel comment) async {
     try {
-      final repo = ref.read(commentRepositoryProvider);
-      // Optimistic invalidation
-      await repo.toggleLike(comment.id, comment.hasLiked);
-      ref.invalidate(commentListProvider(widget.policyId));
+      // Call optimistic toggle in Notifier
+      await ref.read(commentListProvider(widget.policyId).notifier).toggleLike(comment.id, comment.hasLiked);
     } catch (e) {
       if (mounted) SnackbarUtils.showError(context, e.toString());
     }
@@ -41,7 +40,6 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(userProfileProvider);
     final commentsAsync = ref.watch(commentListProvider(widget.policyId));
 
     return Column(
@@ -56,7 +54,7 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
                 // Count all comments including replies
                 int total = comments.length;
                 for (var c in comments) {
-                  total += c.replies.length;
+                  total += (c.replies.length).toInt();
                 }
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -106,7 +104,7 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
                             isReply: true, 
                             isLastReply: idx == comment.replies.length - 1,
                           );
-                        }).toList(),
+                        }),
                       ]
                     ],
                 );
@@ -125,10 +123,6 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
     bool isLastReply = true, 
     bool hasReplies = false,
   }) {
-    final initials = comment.userFullName.length >= 2 
-        ? comment.userFullName.substring(0, 2).toUpperCase() 
-        : comment.userFullName.toUpperCase();
-
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,13 +132,10 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
               width: 32,
               child: Column(
                 children: [
-                  CircleAvatar(
+                  AppAvatar(
                     radius: 16,
-                    backgroundColor: AppColors.primary,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
+                    avatarUrl: comment.userAvatarUrl,
+                    name: comment.userFullName,
                   ),
                   if (hasReplies)
                     Expanded(
@@ -189,13 +180,10 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
                 ],
               ),
             ),
-            CircleAvatar(
+            AppAvatar(
               radius: 12,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                initials,
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-              ),
+              avatarUrl: comment.userAvatarUrl,
+              name: comment.userFullName,
             ),
           ],
           const SizedBox(width: 12),
@@ -222,10 +210,18 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
                     children: [
                       InkWell(
                         onTap: () => _toggleLike(comment),
-                        child: Icon(
-                          comment.hasLiked ? Icons.favorite : Icons.favorite_border,
-                          size: 16, 
-                          color: comment.hasLiked ? Colors.red : AppColors.textTertiary,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) => ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          ),
+                          child: Icon(
+                            comment.hasLiked ? Icons.favorite : Icons.favorite_border,
+                            key: ValueKey('${comment.id}_${comment.hasLiked}'),
+                            size: 16, 
+                            color: comment.hasLiked ? Colors.red : AppColors.textTertiary,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),

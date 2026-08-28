@@ -7,7 +7,7 @@ class CommentRepository {
   Future<List<Map<String, dynamic>>> fetchComments(String policyId) async {
     final response = await _client
         .from('comments')
-        .select('*, profiles(full_name)')
+        .select('*, profiles(full_name, avatar_url)')
         .eq('policy_id', policyId)
         .order('created_at', ascending: true); // Ascending agar komentar lama di atas, reply berurutan
     return List<Map<String, dynamic>>.from(response);

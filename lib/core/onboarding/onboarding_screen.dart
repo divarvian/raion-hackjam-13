@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_text_styles.dart';
@@ -71,17 +72,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Logo / Header - could be app logo
-            Padding(
-              padding: const EdgeInsets.only(top: AppSizes.p32),
-              child: Text(
-                'Kawal.Z',
-                style: AppTextStyles.headlineMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            // Logo / Header - just some top padding
+            const SizedBox(height: AppSizes.p32),
             const SizedBox(height: AppSizes.p24),
 
             // Page View
@@ -201,24 +193,11 @@ class OnboardingPageContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Number badge
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                page.number,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+          // Logo
+          Image.asset(
+            'assets/icons/kawalz_logo.png',
+            width: 160,
+            height: 160,
           ),
           const SizedBox(height: AppSizes.p32),
 

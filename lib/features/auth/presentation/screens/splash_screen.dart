@@ -40,11 +40,35 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (SupabaseService.isAuthenticated) {
       try {
+        final user = SupabaseService.currentUser!;
         final profile = await SupabaseService.client
             .from('profiles')
-            .select('id, interested_topics')
-            .eq('id', SupabaseService.currentUser!.id)
+            .select('id, interested_topics, avatar_url, full_name')
+            .eq('id', user.id)
             .single();
+
+        // Sync Google avatar/name to profiles table if missing
+        final googleAvatar = user.userMetadata?['avatar_url'] as String?;
+        final googleName = user.userMetadata?['full_name'] as String?;
+        
+        bool needsSync = false;
+        Map<String, dynamic> updates = {};
+        
+        if (googleAvatar != null && (profile['avatar_url'] == null || profile['avatar_url'] != googleAvatar)) {
+          updates['avatar_url'] = googleAvatar;
+          needsSync = true;
+        }
+        if (googleName != null && profile['full_name'] == null) {
+          updates['full_name'] = googleName;
+          needsSync = true;
+        }
+
+        if (needsSync) {
+          await SupabaseService.client
+              .from('profiles')
+              .update(updates)
+              .eq('id', user.id);
+        }
 
         final topics = profile['interested_topics'] as List<dynamic>? ?? [];
 
